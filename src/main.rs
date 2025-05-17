@@ -36,19 +36,21 @@ impl Response {
 async fn main() -> anyhow::Result<()> {
     let listener = TcpListener::bind("127.0.0.1:9092").await?;
 
-    match listener.accept().await {
-        Ok((mut sock, _addr)) => {
-            sock.writable()
-                .await
-                .context("Waiting for socket to be writeable")?;
+    loop {
+        match listener.accept().await {
+            Ok((mut sock, _addr)) => {
+                sock.writable()
+                    .await
+                    .context("Waiting for socket to be writeable")?;
 
-            let res = Response::new_v0(0, 7);
+                let res = Response::new_v0(0, 7);
 
-            sock.write_all(&res.to_bytes())
-                .await
-                .context("Writing response to socket")?;
+                sock.write_all(&res.to_bytes())
+                    .await
+                    .context("Writing response to socket")?;
+            }
+            Err(e) => println!("error: {}", e),
         }
-        Err(e) => println!("error: {}", e),
     }
 
     Ok(())
