@@ -8,7 +8,7 @@ use tokio::{
 };
 
 #[derive(Debug)]
-struct KafkaResponse {
+struct Response {
     message_size: i32,
     header: ResponseHeader,
 }
@@ -18,7 +18,7 @@ enum ResponseHeader {
     V0 { correlation_id: i32 },
 }
 
-impl KafkaResponse {
+impl Response {
     fn new_response_v0(message_size: i32, correlation_id: i32) -> Self {
         Self {
             message_size,
@@ -39,7 +39,7 @@ impl KafkaResponse {
 }
 
 #[derive(Debug)]
-struct KafkaRequest {
+struct Request {
     message_size: i32,
     header: RequestHeader,
 }
@@ -55,7 +55,7 @@ enum RequestHeader {
     },
 }
 
-impl KafkaRequest {
+impl Request {
     #[allow(unreachable_patterns)]
     fn to_bytes(self) -> bytes::BytesMut {
         let mut buf = bytes::BytesMut::new();
@@ -79,7 +79,7 @@ impl KafkaRequest {
         buf
     }
 
-    fn new_v2_from_buf(buf: &mut bytes::BytesMut) -> Self {
+    fn from_buf_v2(buf: &mut bytes::BytesMut) -> Self {
         Self {
             message_size: buf.get_i32(),
             header: RequestHeader::V2 {
@@ -113,20 +113,18 @@ async fn main() -> anyhow::Result<()> {
             }
             Ok(n) => {
                 println!("Received: {:?}", &buf[..n]);
-                let req = KafkaRequest::new_v2_from_buf(&mut buf);
+                let req = Request::from_buf_v2(&mut buf);
                 dbg!(&req);
+
                 let cid = match req.header {
                     RequestHeader::V2 { correlation_id, .. } => correlation_id,
                 };
-                let res = KafkaResponse::new_response_v0(0, cid);
+
+                let res = Response::new_response_v0(0, cid);
                 dbg!(&res);
 
                 socket
-                    .write_all(&res.to_bytes())
-                    .await
-                    .with_context(|| format!("Writing response {:?}", &res))?;
-                socket
-                    .flush()
+                    .write_all_buf(&mut res.to_bytes())
                     .await
                     .with_context(|| format!("Writing response {:?}", &res))?;
             }
