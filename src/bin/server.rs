@@ -1,27 +1,11 @@
-#![allow(dead_code)]
+use codecrafters_kafka::handlers::request_handler::RequestHandler;
+use codecrafters_kafka::message::codec::KafkaCodec;
 
 use anyhow::Context;
-use bytes::Bytes;
-use message::{codec::KafkaCodec, headers::ResponseHeaderV0, response::KafkaResponse};
 use tokio::net::TcpListener;
 use tokio_util::codec::Framed;
 use tracing::{info, warn};
 use tracing_subscriber::FmtSubscriber;
-
-mod message;
-mod requests;
-
-#[derive(Debug)]
-struct Response {
-    message_size: i32,
-    header: ResponseHeader,
-    body: Bytes,
-}
-
-#[derive(Debug)]
-enum ResponseHeader {
-    V0 { correlation_id: i32 },
-}
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -42,9 +26,11 @@ async fn main() -> anyhow::Result<()> {
         info!("Socket connected {addr}");
         let codec = KafkaCodec {};
 
+        let request_handler = RequestHandler::default();
+
         tokio::spawn(async move {
-            use tokio_stream::StreamExt;
             use futures::SinkExt;
+            use tokio_stream::StreamExt;
             let mut framed = Framed::new(socket, codec);
 
             while let Some(req) = framed.next().await {
@@ -53,19 +39,19 @@ async fn main() -> anyhow::Result<()> {
                     Err(e) => warn!("Frame errored: {e}"),
                     Ok(req) => {
                         info!("Frame recieved {:?}", req);
-                        let body = "hibaby";
-                        let res = KafkaResponse {
-                            message_size: body.len() as i32,
-                            header: ResponseHeaderV0 {
-                                correlation_id: req.header.correlation_id
-                            },
-                            body: body.into()
+
+                        let res = match request_handler.handle(req) {
+                            Err(e) => {
+                                warn!("{:?}", e);
+                                continue;
+                            }
+                            Ok(r) => r,
                         };
 
-                        if let Err(e) =  framed.send(res).await {
-                            warn!("Error replying to request: {:?}", e);
-                        } else   {
-                           info!("Response sent") 
+                        if let Err(e) = framed.send(res).await {
+                            warn!("Response Error: {:?}", e);
+                        } else {
+                            info!("Response Ok")
                         }
                     }
                 }
@@ -73,7 +59,5 @@ async fn main() -> anyhow::Result<()> {
 
             info!("Socket disconnected {addr}");
         });
-
     }
-
 }

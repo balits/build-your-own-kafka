@@ -8,3 +8,13 @@ pub struct KafkaRequest {
     pub header: RequestHeaderV2,
     pub body: Bytes,
 }
+
+impl KafkaRequest {
+    pub fn new(message_size: i32, header: RequestHeaderV2, body: Bytes) -> Self {
+        Self {
+            message_size,
+            header,
+            body,
+        }
+    }
+}
