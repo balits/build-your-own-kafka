@@ -1,6 +1,6 @@
 use bytes::Bytes;
 
-use crate::message::codec::MAX_BODY_SIZE;
+use crate::codec::MAX_BODY_SIZE;
 use crate::message::headers::ResponseHeaderV0;
 
 pub struct KafkaResponse {

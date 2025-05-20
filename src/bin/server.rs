@@ -1,5 +1,5 @@
 use codecrafters_kafka::handlers::request_handler::RequestHandler;
-use codecrafters_kafka::message::codec::KafkaCodec;
+use codecrafters_kafka::codec::KafkaCodec;
 
 use anyhow::Context;
 use tokio::net::TcpListener;
@@ -24,7 +24,7 @@ async fn main() -> anyhow::Result<()> {
     loop {
         let (socket, addr) = listener.accept().await.context("Accepting sockets")?;
         info!("Socket connected {addr}");
-        let codec = KafkaCodec {};
+        let codec = KafkaCodec::default();
 
         let request_handler = RequestHandler::default();
 

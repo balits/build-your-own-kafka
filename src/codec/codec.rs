@@ -1,13 +1,29 @@
 use anyhow::{self, bail, ensure};
-use bytes::{Buf, BufMut, Bytes};
+use bytes::{Buf, BufMut};
 use tokio_util::codec;
 use tracing::debug;
 
-use super::{headers::RequestHeaderV2, request::KafkaRequest, response::KafkaResponse};
+use super::{CustomDecoder, WireLength};
+
+use crate::{
+    message::{
+        api_keys::ApiKeys,
+        body::{ApiVersionRequestBody, RequestBody},
+        headers::RequestHeaderV2,
+        request::KafkaRequest,
+        response::KafkaResponse,
+    },
+    primitives::{CompactArray, Tag},
+};
+
+pub const MAX_BODY_SIZE: usize = 1024;
 
 pub struct KafkaCodec {}
-pub const MAX_BODY_SIZE: usize = 1024;
-pub const MAX_CLIENT_ID_SIZE: usize = 126;
+impl Default for KafkaCodec {
+    fn default() -> Self {
+        Self {}
+    }
+}
 
 impl codec::Decoder for KafkaCodec {
     type Item = KafkaRequest;
@@ -37,41 +53,63 @@ impl codec::Decoder for KafkaCodec {
             return Ok(None);
         }
 
+        // after this, we can match on ApiKeys, so we know what kind of body to expect
         let request_api_key = src.get_i16();
-        debug!("{}", request_api_key);
+        debug!("api key {}", request_api_key);
         let request_api_version = src.get_i16();
-        debug!("{}", request_api_version);
+        debug!("api version {}", request_api_version);
         let correlation_id = src.get_i32();
-        debug!("{}", correlation_id);
+        debug!("corr id {}", correlation_id);
 
-        let client_id = super::decode::decode_nullable_string(src)?;
+        let client_id = super::decode_nullable_string(src)?;
         let client_id = match client_id {
             Some(str) => str,
             None => return Ok(None),
         };
-        debug!("{}", correlation_id);
+        debug!("client id {}", client_id);
 
         // TODO: tag buffer is usually empty in codecrafters, but it should be implemnted anyways
-        // For now Im going to skip it
+        // but for now im just gonna leave it here
+        let tag_buffer  = match CompactArray::<Tag>::decode(src, 0) {
+            Ok(opt) => match opt {
+                Some(val) => val,
+                None => return Ok(None),
+            },
+            Err(e) => bail!(e),
+        };
+        debug!("tag buff {:?}", tag_buffer);
 
         let header = RequestHeaderV2::new(
             request_api_key,
             request_api_version,
             correlation_id,
             client_id,
+            tag_buffer,
         );
 
-        let body_size = message_size - header.size();
+        let body_size = message_size - header.wire_len();
         debug!("{}", body_size);
-        debug!("{}", header.size());
+        debug!("{}", header.wire_len());
 
         if src.len() < body_size {
             src.reserve(body_size);
             return Ok(None);
         }
 
-        let body = Bytes::from(src.split_to(body_size));
+        let body = match header.request_api_key {
+            ApiKeys::ApiVersions => {
+                let body_inner = ApiVersionRequestBody::decode(src, body_size)?;
 
+                if body_inner.is_none() {
+                    return Ok(None);
+                }
+
+                RequestBody::ApiVersions(body_inner.unwrap())
+            }
+            u @ ApiKeys::UNIMPLEMENTED => bail!("Got request with unimplemented api key {u}"),
+        };
+
+        // as i32 cast is safe due to previos assertion 0 <= message_size <= MAX_BODY_SIZE
         Ok(Some(KafkaRequest::new(message_size as i32, header, body)))
     }
 }

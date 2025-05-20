@@ -1,4 +1,7 @@
 use crate::message::api_keys::ApiKeys;
+use crate::primitives::{CompactArray, Tag};
+
+use crate::codec::WireLength;
 
 pub struct ResponseHeaderV0 {
     pub(crate) correlation_id: i32,
@@ -17,12 +20,10 @@ impl ResponseHeaderV0 {
 #[derive(Debug)]
 pub struct RequestHeaderV2 {
     pub(crate) request_api_key: ApiKeys,
-    #[allow(dead_code)]
     pub(crate) request_api_version: i16,
     pub(crate) correlation_id: i32,
     pub(crate) client_id: String,
-    // TODO Optional tagged fields
-    // tag_buffer: Vec<u8>,
+    pub(crate) tag_buffer: CompactArray<Tag>,
 }
 
 impl RequestHeaderV2 {
@@ -35,20 +36,23 @@ impl RequestHeaderV2 {
         request_api_version: i16,
         correlation_id: i32,
         client_id: String,
+        tag_buffer: CompactArray<Tag>,
     ) -> Self {
         Self {
             request_api_key: request_api_key.into(),
             request_api_version,
             correlation_id,
             client_id,
+            tag_buffer,
         }
     }
+}
 
-    /// This returns the length of the header
-    /// in bytes, using the strings length, rather than its
-    /// stack memory representation (ptr, len, cap)
-    #[inline]
-    pub fn size(&self) -> usize {
-        2 + 2 + 4 + 2 + self.client_id.len()
+/// This returns the length of the header
+/// in bytes, using the strings length, rather than its
+/// stack memory representation (ptr, len, cap)
+impl WireLength for RequestHeaderV2 {
+    fn wire_len(&self) -> usize {
+        2 + 2 + 4 + 2 + self.client_id.len() + self.tag_buffer.len()
     }
 }
