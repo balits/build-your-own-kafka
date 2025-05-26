@@ -1,17 +1,17 @@
-use codecrafters_kafka::handlers::request_handler::RequestHandler;
-use codecrafters_kafka::codec::KafkaCodec;
+use kafka::codec::KafkaCodec;
+use kafka::handlers::request_handler::RequestHandler;
 
 use anyhow::Context;
 use tokio::net::TcpListener;
 use tokio_util::codec::Framed;
-use tracing::{info, warn};
+use tracing::{error, info, warn};
 use tracing_subscriber::FmtSubscriber;
 
-#[tokio::main]
+#[tokio::main(flavor = "current_thread")]
 async fn main() -> anyhow::Result<()> {
     {
         let subscriber = FmtSubscriber::builder()
-            .with_max_level(tracing::Level::DEBUG)
+            .with_max_level(tracing::Level::TRACE)
             .finish();
 
         tracing::subscriber::set_global_default(subscriber)
@@ -34,7 +34,6 @@ async fn main() -> anyhow::Result<()> {
             let mut framed = Framed::new(socket, codec);
 
             while let Some(req) = framed.next().await {
-                info!("Got some frame");
                 match req {
                     Err(e) => warn!("Frame errored: {e}"),
                     Ok(req) => {
@@ -42,14 +41,14 @@ async fn main() -> anyhow::Result<()> {
 
                         let res = match request_handler.handle(req) {
                             Err(e) => {
-                                warn!("{:?}", e);
+                                error!("{:?}", e);
                                 continue;
                             }
                             Ok(r) => r,
                         };
 
                         if let Err(e) = framed.send(res).await {
-                            warn!("Response Error: {:?}", e);
+                            error!("Response Error: {:?}", e);
                         } else {
                             info!("Response Ok")
                         }

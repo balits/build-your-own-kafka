@@ -1,9 +1,9 @@
 use anyhow::{self, bail, ensure};
 use bytes::{Buf, BufMut};
 use tokio_util::codec;
-use tracing::debug;
+use tracing::{info, span, trace, Level};
 
-use super::{CustomDecoder, WireLength};
+use super::{CustomDecoder, WireLen};
 
 use crate::{
     message::{
@@ -13,7 +13,8 @@ use crate::{
         request::KafkaRequest,
         response::KafkaResponse,
     },
-    primitives::{CompactArray, Tag},
+    primitives::{CompactArray, NullableString},
+    unwrap_decode,
 };
 
 pub const MAX_BODY_SIZE: usize = 1024;
@@ -30,54 +31,52 @@ impl codec::Decoder for KafkaCodec {
     type Error = anyhow::Error;
 
     fn decode(&mut self, src: &mut bytes::BytesMut) -> Result<Option<Self::Item>, Self::Error> {
-        // not enough for message_size
         if src.len() < 4 {
             return Ok(None);
         }
 
         let message_size = src.get_i32();
-        debug!("{}", message_size);
+        trace!(message_size = message_size);
+
         if message_size < 0 {
             bail!("Message size cannot be negative ({message_size})");
         }
+
         let message_size = message_size as usize;
         if message_size > MAX_BODY_SIZE {
             bail!("Message size exceeds maximum size {MAX_BODY_SIZE}");
         }
 
-        // parsing fixed sized fields of header
         if src.len() < 8 {
             // fixed sized fields of the header has not yet arrived, reserve size for them then
-            // bail
             src.reserve(8);
             return Ok(None);
         }
-
-        // after this, we can match on ApiKeys, so we know what kind of body to expect
         let request_api_key = src.get_i16();
-        debug!("api key {}", request_api_key);
         let request_api_version = src.get_i16();
-        debug!("api version {}", request_api_version);
         let correlation_id = src.get_i32();
-        debug!("corr id {}", correlation_id);
 
-        let client_id = super::decode_nullable_string(src)?;
-        let client_id = match client_id {
-            Some(str) => str,
-            None => return Ok(None),
-        };
-        debug!("client id {}", client_id);
+        let client_id = unwrap_decode!(NullableString::decode(src, None));
 
-        // TODO: tag buffer is usually empty in codecrafters, but it should be implemnted anyways
-        // but for now im just gonna leave it here
-        let tag_buffer  = match CompactArray::<Tag>::decode(src, 0) {
-            Ok(opt) => match opt {
-                Some(val) => val,
-                None => return Ok(None),
-            },
-            Err(e) => bail!(e),
-        };
-        debug!("tag buff {:?}", tag_buffer);
+        // As far as I know, they do not even send 0x00, 0x00 as zero length for
+        // empty tag buffer
+        // let tag_buffer = unwrap_decode!(CompactArray::<Tag>::decode(src, None));
+        let tag_buffer = CompactArray::new();
+
+        {
+            trace!(wire_len_api_key = request_api_key.wire_len());
+            trace!(wire_len_api_key_version = request_api_version.wire_len());
+            trace!(wire_len_correlation_id = correlation_id.wire_len());
+            trace!(wire_len_client_id = client_id.wire_len());
+            trace!(wire_len_tag_buffer = tag_buffer.wire_len());
+            trace!(
+                sum = request_api_key.wire_len()
+                    + request_api_version.wire_len()
+                    + correlation_id.wire_len()
+                    + client_id.wire_len()
+                    + tag_buffer.wire_len()
+            );
+        }
 
         let header = RequestHeaderV2::new(
             request_api_key,
@@ -88,8 +87,13 @@ impl codec::Decoder for KafkaCodec {
         );
 
         let body_size = message_size - header.wire_len();
-        debug!("{}", body_size);
-        debug!("{}", header.wire_len());
+
+        info!(
+            "body_size {} = message_size {} - header.wire_len {}",
+            body_size,
+            message_size,
+            header.wire_len()
+        );
 
         if src.len() < body_size {
             src.reserve(body_size);
@@ -98,26 +102,23 @@ impl codec::Decoder for KafkaCodec {
 
         let body = match header.request_api_key {
             ApiKeys::ApiVersions => {
-                let body_inner = ApiVersionRequestBody::decode(src, body_size)?;
-
-                if body_inner.is_none() {
-                    return Ok(None);
-                }
-
-                RequestBody::ApiVersions(body_inner.unwrap())
+                let body_inner =
+                    unwrap_decode!(ApiVersionRequestBody::decode(src, Some(body_size)));
+                RequestBody::ApiVersions(body_inner)
             }
             u @ ApiKeys::UNIMPLEMENTED => bail!("Got request with unimplemented api key {u}"),
         };
 
-        // as i32 cast is safe due to previos assertion 0 <= message_size <= MAX_BODY_SIZE
-        Ok(Some(KafkaRequest::new(message_size as i32, header, body)))
+        // an i32 cast is safe due to previos assertion 0 <= message_size <= MAX_BODY_SIZE
+        let req = KafkaRequest::new(message_size as i32, header, body);
+        Ok(Some(req))
     }
 }
+
 impl codec::Encoder<KafkaResponse> for KafkaCodec {
     type Error = anyhow::Error;
 
-    fn encode(
-        &mut self,
+    fn encode(&mut self,
         item: KafkaResponse,
         dst: &mut bytes::BytesMut,
     ) -> Result<(), Self::Error> {

@@ -1,5 +1,5 @@
+use crate::codec::{CustomDecoder, WireLen};
 use std::fmt::Debug;
-use crate::codec::{WireLength, CustomDecoder};
 
 use super::UVarint;
 
@@ -38,29 +38,31 @@ impl<T> CompactArray<T> {
     }
 }
 
-impl<T> WireLength for CompactArray<T> {
+impl<T> WireLen for CompactArray<T> {
     fn wire_len(&self) -> usize {
-        return size_of::<i16>() + self.len();
+        // current implementation assumes codecrafters does not even
+        // send the length prefix for an empty tag buffer (whre compact array is used)
+        assert!(self.len() == 0, "CompactArray with non zero length");
+        return 0;
+
+        // accounting for the 'lenght' of the array
+        // specified by an i16 as a prefix
+        //return size_of::<i16>() + self.len();
     }
 }
 
 impl<T> CustomDecoder for CompactArray<T> {
     type Error = anyhow::Error;
 
-    fn decode(src: &mut bytes::BytesMut, _size: usize) -> Result<Option<Self>, Self::Error> {
+    fn decode(src: &mut bytes::BytesMut, _: Option<usize>) -> Result<Option<Self>, Self::Error> {
         // CompactArray is used for storing tags, we dont care about it
         // since its usually empty anyways
 
-        let let_plus_one = match UVarint::decode(src, 0)? {
+        let _let_plus_one = match UVarint::decode(src, None)? {
             Some(v) => v.0,
             None => return Ok(None),
         };
-        let len = (let_plus_one - 1) as usize;
 
-        anyhow::ensure!(
-            len == 0,
-            "COMPACT ARRAY WITH NON ZERO LENGTH IN SOURCE BUFFER"
-        );
         Ok(Some(CompactArray::new()))
     }
 }

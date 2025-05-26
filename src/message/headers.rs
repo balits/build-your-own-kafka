@@ -1,7 +1,7 @@
-use crate::message::api_keys::ApiKeys;
-use crate::primitives::{CompactArray, Tag};
+use kafka_macros::WireLen;
 
-use crate::codec::WireLength;
+use crate::message::api_keys::ApiKeys;
+use crate::primitives::{CompactArray, NullableString, Tag};
 
 pub struct ResponseHeaderV0 {
     pub(crate) correlation_id: i32,
@@ -17,12 +17,12 @@ impl ResponseHeaderV0 {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, WireLen)]
 pub struct RequestHeaderV2 {
     pub(crate) request_api_key: ApiKeys,
     pub(crate) request_api_version: i16,
     pub(crate) correlation_id: i32,
-    pub(crate) client_id: String,
+    pub(crate) client_id: NullableString,
     pub(crate) tag_buffer: CompactArray<Tag>,
 }
 
@@ -35,7 +35,7 @@ impl RequestHeaderV2 {
         request_api_key: i16,
         request_api_version: i16,
         correlation_id: i32,
-        client_id: String,
+        client_id: NullableString,
         tag_buffer: CompactArray<Tag>,
     ) -> Self {
         Self {
@@ -45,14 +45,5 @@ impl RequestHeaderV2 {
             client_id,
             tag_buffer,
         }
-    }
-}
-
-/// This returns the length of the header
-/// in bytes, using the strings length, rather than its
-/// stack memory representation (ptr, len, cap)
-impl WireLength for RequestHeaderV2 {
-    fn wire_len(&self) -> usize {
-        2 + 2 + 4 + 2 + self.client_id.len() + self.tag_buffer.len()
     }
 }

@@ -1,4 +1,6 @@
+pub mod codec;
 pub mod handlers;
 pub mod message;
 pub mod primitives;
-pub mod codec;
+
+pub use codec::WireLen;
