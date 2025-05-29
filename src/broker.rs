@@ -2,13 +2,21 @@ use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
 use anyhow::Context;
 use bytes::BytesMut;
-use tokio::{io::{AsyncReadExt, AsyncWriteExt}, net::{TcpListener, TcpStream}};
-use tracing::{error, info, debug, warn};
+use tokio::{
+    io::{AsyncReadExt, AsyncWriteExt},
+    net::{TcpListener, TcpStream},
+};
+use tracing::{debug, error, info, warn};
 
-use crate::{codec::{Decoder, Encoder}, handlers::handle_request, request::KafkaRequest, WireLen};
+use crate::{
+    codec::{Decoder, Encoder},
+    handlers::handle_request,
+    request::KafkaRequest,
+    WireLen,
+};
 
 pub struct Broker {
-    listener: TcpListener
+    listener: TcpListener,
 }
 
 impl Broker {
@@ -17,13 +25,13 @@ impl Broker {
 
     pub async fn new() -> Self {
         Self {
-            listener: TcpListener::bind(Self::ADDR).await.unwrap()
+            listener: TcpListener::bind(Self::ADDR).await.unwrap(),
         }
     }
 
     async fn handle_socket(stream: TcpStream, addr: SocketAddr) -> anyhow::Result<()> {
         info!("{addr} connected");
-        let  (mut r, mut w) = tokio::io::split(stream);
+        let (mut r, mut w) = tokio::io::split(stream);
         loop {
             let mut buf = BytesMut::with_capacity(Self::READ_SIZE); // <- TODO: handle bigger input sized or frames/dynamic reading
             let n = match r.read_buf(&mut buf).await {
@@ -37,12 +45,13 @@ impl Broker {
                 }
                 Ok(0) => {
                     info!("{addr} disconnected");
-                    return Ok(())
+                    return Ok(());
                 }
-                Ok(n) => n
+                Ok(n) => n,
             };
 
-            let req = KafkaRequest::decode(&mut buf.split_to(n), None).context("Decoding buffer into request")?;
+            let req = KafkaRequest::decode(&mut buf.split_to(n), None)
+                .context("Decoding buffer into request")?;
             if req.is_none() {
                 error!("Could not decode buffer");
                 continue;
@@ -51,9 +60,11 @@ impl Broker {
 
             let res = handle_request(&req).context("Handling request")?;
             let mut buf = BytesMut::with_capacity(res.wire_len());
-            res.encode(&mut buf).context("Encoding response to buffer")?;
-            debug!("{:X?}", &buf[..]);
-            w.write_all_buf(&mut buf).await.context("Sending response buffer")?;
+            res.encode(&mut buf)
+                .context("Encoding response to buffer")?;
+            w.write_all_buf(&mut buf)
+                .await
+                .context("Sending response buffer")?;
         }
         Ok(())
     }
@@ -62,7 +73,11 @@ impl Broker {
         info!("Listening on {}", Self::ADDR);
 
         loop {
-            let (stream, addr) = self.listener.accept().await.context("Accepting new connection")?;
+            let (stream, addr) = self
+                .listener
+                .accept()
+                .await
+                .context("Accepting new connection")?;
             tokio::spawn(Self::handle_socket(stream, addr));
         }
     }

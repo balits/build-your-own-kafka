@@ -1,7 +1,11 @@
-use std::fmt::Debug;
+use crate::{
+    codec::Decoder,
+    primitives::{ApiKeys, CompactArray, NullableString, Tag},
+    unwrap_decode,
+};
 use bytes::Buf;
 use kafka_macros::WireLen;
-use crate::{codec::Decoder, primitives::{ApiKeys, CompactArray, NullableString, Tag}, unwrap_decode};
+use std::fmt::Debug;
 
 #[derive(Debug, WireLen)]
 pub struct RequestHeaderV2 {
@@ -37,9 +41,9 @@ impl RequestHeaderV2 {
 impl Decoder for RequestHeaderV2 {
     type Error = anyhow::Error;
 
-    fn decode( src: &mut bytes::BytesMut, _: Option<usize>,) -> Result<Option<Self>, Self::Error>
+    fn decode(src: &mut bytes::BytesMut, _: Option<usize>) -> Result<Option<Self>, Self::Error>
     where
-        Self: Sized + crate::WireLen
+        Self: Sized + crate::WireLen,
     {
         if src.remaining() < 8 {
             src.reserve(8);

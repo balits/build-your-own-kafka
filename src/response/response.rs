@@ -1,9 +1,9 @@
 use bytes::{BufMut, BytesMut};
 use kafka_macros::WireLen;
 
-use crate::codec::Encoder;
-use super::headers::ResponseHeaderV0;
 use super::body::ResponseBody;
+use super::headers::ResponseHeaderV0;
+use crate::codec::Encoder;
 
 #[derive(Debug, WireLen)]
 pub struct KafkaResponse {
@@ -14,11 +14,13 @@ pub struct KafkaResponse {
 
 impl KafkaResponse {
     pub fn new(message_size: i32, header: ResponseHeaderV0, body: ResponseBody) -> Self {
-        Self {message_size, header, body}
+        Self {
+            message_size,
+            header,
+            body,
+        }
     }
 }
-
-
 
 impl Encoder for KafkaResponse {
     /// This is the top level call to decode

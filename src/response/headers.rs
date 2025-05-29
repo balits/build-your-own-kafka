@@ -1,6 +1,6 @@
+use crate::codec::Encoder;
 use bytes::BufMut;
 use kafka_macros::WireLen;
-use crate::codec::Encoder;
 
 #[derive(Debug, WireLen)]
 pub struct ResponseHeaderV0 {
@@ -14,7 +14,7 @@ impl ResponseHeaderV0 {
 }
 
 impl Encoder for ResponseHeaderV0 {
-    fn encode(&self, dest: &mut bytes::BytesMut) ->  anyhow::Result<()> {
+    fn encode(&self, dest: &mut bytes::BytesMut) -> anyhow::Result<()> {
         dest.put_i32(self.correlation_id);
         Ok(())
     }

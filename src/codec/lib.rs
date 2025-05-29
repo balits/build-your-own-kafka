@@ -33,6 +33,6 @@ pub trait WireLen {
 /// provided that they grow the buffer to the appropriate size.
 /// Alternatively a call to the top level `encode`, such when encoding
 /// a `KafkaResponse` its optimal to reserve space using the `WireLen` trait
-pub trait Encoder{
-    fn encode(&self, dest: &mut BytesMut) ->  anyhow::Result<()>;
+pub trait Encoder {
+    fn encode(&self, dest: &mut BytesMut) -> anyhow::Result<()>;
 }

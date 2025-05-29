@@ -1,7 +1,7 @@
-mod request;
-mod header;
 mod body;
+mod header;
+mod request;
 
-pub use request::KafkaRequest;
 pub use body::*;
 pub use header::RequestHeaderV2;
+pub use request::KafkaRequest;

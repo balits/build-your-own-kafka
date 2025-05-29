@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use anyhow::{bail, ensure, Context};
+use anyhow::{Context, bail, ensure};
 use bytes::Buf;
 
 use crate::{

@@ -1,10 +1,10 @@
 use anyhow::{self, bail};
 
 use crate::{
+    WireLen,
     primitives::{ApiKeys, CompactArray},
     request::KafkaRequest,
     response::{ApiVersion, ApiVersionResponseBody, KafkaResponse, ResponseBody, ResponseHeaderV0},
-    WireLen,
 };
 
 pub fn handle_request(req: &KafkaRequest) -> anyhow::Result<KafkaResponse> {

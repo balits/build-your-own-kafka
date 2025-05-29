@@ -37,7 +37,7 @@ impl Decoder for CompactString {
             Some(v) => v.0,
             None => return Ok(None),
         };
-        trace!(len_plus_one=len_plus_one);
+        trace!(len_plus_one = len_plus_one);
 
         if len_plus_one == 0 {
             return Ok(Some(CompactString("".into())));

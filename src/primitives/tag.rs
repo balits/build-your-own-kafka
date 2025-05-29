@@ -17,8 +17,8 @@ impl Tag {
 }
 
 impl Encoder for Tag {
-    fn encode(&self, dest: &mut bytes::BytesMut) ->  anyhow::Result<()> {
-        dest.put_u8(self.inner);        
+    fn encode(&self, dest: &mut bytes::BytesMut) -> anyhow::Result<()> {
+        dest.put_u8(self.inner);
         Ok(())
     }
 }

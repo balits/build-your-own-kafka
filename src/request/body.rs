@@ -15,14 +15,20 @@ pub enum RequestBody {
 }
 
 impl RequestBody {
-    pub fn decode_by_key(key: &ApiKeys, src: &mut BytesMut, size: Option<usize>) -> anyhow::Result<Option<Self>> {
+    pub fn decode_by_key(
+        key: &ApiKeys,
+        src: &mut BytesMut,
+        size: Option<usize>,
+    ) -> anyhow::Result<Option<Self>> {
         match key {
             ApiKeys::ApiVersions => {
                 let inner = unwrap_decode!(ApiVersionRequestBody::decode(src, size));
 
                 Ok(Some(RequestBody::ApiVersions(inner)))
             }
-            ApiKeys::Unimplemented => bail!("Couldnt decode body based on api key {key} as it is unimplemented!")
+            ApiKeys::Unimplemented => {
+                bail!("Couldnt decode body based on api key {key} as it is unimplemented!")
+            }
         }
     }
 }

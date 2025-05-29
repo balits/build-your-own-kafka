@@ -1,6 +1,6 @@
 mod lib;
 
-pub use lib::{Encoder, Decoder, WireLen, MAX_MESSAGE_SIZE};
+pub use lib::{Decoder, Encoder, MAX_MESSAGE_SIZE, WireLen};
 
 macro_rules! impl_wire_length {
     ( $( $t:ty )*) => {
@@ -23,7 +23,7 @@ impl_wire_length!(u8 u16 u32 u64 i8 i16 i32 i64 usize isize bool);
 /// them, and call this macro in appropriate places
 ///
 /// # Examples
-/// 
+///
 /// ```rust
 /// let x: CustomType = match CustomType::decode(src)
 ///     Ok(opt) => match opt {

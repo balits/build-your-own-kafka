@@ -1,15 +1,13 @@
-use crate::codec::{Encoder, Decoder, WireLen};
+use crate::codec::{Decoder, Encoder, WireLen};
 use bytes::{Buf, BufMut};
 use thiserror::Error;
 use tracing::trace;
-
-
 
 pub struct UVarint(pub(crate) u32);
 
 impl WireLen for UVarint {
     fn wire_len(&self) -> usize {
-       UVarint::wire_len_of(self.0)
+        UVarint::wire_len_of(self.0)
     }
 }
 
@@ -69,7 +67,7 @@ impl Decoder for UVarint {
 
 impl Encoder for UVarint {
     /// see wiki https://en.wikipedia.org/wiki/LEB128#Encode_signed_32-bit_integer
-    fn encode(&self, dest: &mut bytes::BytesMut) ->  anyhow::Result<()> {
+    fn encode(&self, dest: &mut bytes::BytesMut) -> anyhow::Result<()> {
         let mut value = self.0;
         while value >= 0x80 {
             dest.put_u8((value as u8 & 0x7F) | 0x80);
@@ -79,7 +77,6 @@ impl Encoder for UVarint {
         Ok(())
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -128,7 +125,7 @@ mod tests {
         let mut buf = BytesMut::from(&[0x80][..]);
         let result = UVarint::decode(&mut buf, None);
         match result {
-            Err(UVarintDecodeError::UnexpectedEndOfInput) =>  {},
+            Err(UVarintDecodeError::UnexpectedEndOfInput) => {}
             _ => panic!("Expected UnexpectedEndOfInput"),
         }
     }

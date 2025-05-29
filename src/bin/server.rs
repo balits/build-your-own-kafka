@@ -6,7 +6,7 @@ use tracing_subscriber::FmtSubscriber;
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let subscriber = FmtSubscriber::builder()
-        .with_max_level(tracing::Level::TRACE)
+        .with_max_level(tracing::Level::DEBUG)
         .finish();
 
     tracing::subscriber::set_global_default(subscriber)

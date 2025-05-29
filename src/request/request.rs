@@ -5,7 +5,7 @@ use tracing::{info, trace};
 
 use super::body::RequestBody;
 use super::header::RequestHeaderV2;
-use crate::codec::{Decoder, WireLen, MAX_MESSAGE_SIZE};
+use crate::codec::{Decoder, MAX_MESSAGE_SIZE, WireLen};
 use crate::unwrap_decode;
 
 #[derive(WireLen)]
@@ -63,7 +63,11 @@ impl Decoder for KafkaRequest {
         let body_size = message_size - header.wire_len();
 
         if src.remaining() < body_size {
-            trace!("not enough space for body. body.len(): {}, src.len() = {}", body_size, src.remaining());
+            trace!(
+                "not enough space for body. body.len(): {}, src.len() = {}",
+                body_size,
+                src.remaining()
+            );
             src.reserve(body_size);
             return Ok(None);
         }

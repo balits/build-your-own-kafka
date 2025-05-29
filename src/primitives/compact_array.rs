@@ -1,6 +1,6 @@
 use bytes::{Buf, BufMut};
 
-use crate::codec::{Encoder, Decoder, WireLen};
+use crate::codec::{Decoder, Encoder, WireLen};
 use std::fmt::Debug;
 
 use super::UVarint;
@@ -65,7 +65,10 @@ impl<T: WireLen> WireLen for CompactArray<T> {
         if self.len() == 0 {
             UVarint::wire_len_of(0)
         } else {
-            assert!(self.len() <= u32::MAX as usize, "Compact array holds more than u32::MAX, the max size of uvarint");
+            assert!(
+                self.len() <= u32::MAX as usize,
+                "Compact array holds more than u32::MAX, the max size of uvarint"
+            );
             UVarint::wire_len_of(self.len() as u32) + self.len() * self.inner[0].wire_len()
         }
     }
@@ -77,21 +80,24 @@ impl<T: WireLen> Decoder for CompactArray<T> {
     fn decode(src: &mut bytes::BytesMut, _: Option<usize>) -> Result<Option<Self>, Self::Error> {
         // TODO: Refactor, cuz using compact array decode for only tagbuffers
         // and therefore leaving it empty is whacky
-       
+
         if src.remaining() < 1 {
             src.reserve(1);
             return Ok(None);
         }
 
         let zero = src.get_u8();
-        anyhow::ensure!(zero == 0, "Tag buffers (and therefore CompactArrays) are expected to be zero length");
+        anyhow::ensure!(
+            zero == 0,
+            "Tag buffers (and therefore CompactArrays) are expected to be zero length"
+        );
 
         Ok(Some(CompactArray::new()))
     }
 }
 
 impl<T: WireLen + Encoder> Encoder for CompactArray<T> {
-    fn encode(&self, dest: &mut bytes::BytesMut) ->  anyhow::Result<()> {
+    fn encode(&self, dest: &mut bytes::BytesMut) -> anyhow::Result<()> {
         if self.inner.is_empty() {
             dest.put_u8(0);
             return Ok(());
@@ -110,13 +116,13 @@ impl<T: WireLen + Encoder> Encoder for CompactArray<T> {
 mod tests {
     use bytes::BytesMut;
 
-    use super::*;
     use super::super::super::response::ApiVersion;
-    
+    use super::*;
+
     #[test]
     fn test_encode_simple() {
         let mut api_versions = CompactArray::new();
-        api_versions.push(ApiVersion::new(1,0,17));
+        api_versions.push(ApiVersion::new(1, 0, 17));
 
         let mut buf = BytesMut::with_capacity(api_versions.wire_len());
         api_versions.encode(&mut buf).unwrap();
@@ -125,11 +131,11 @@ mod tests {
 
         let c = buf.freeze();
         let mut buf = c.clone();
-        
+
         assert_eq!(api_versions.len() as u8, buf.get_u8());
         assert_eq!(1, buf.get_u16());
         assert_eq!(0, buf.get_u16());
-        assert_eq!(17,buf.get_u16());
+        assert_eq!(17, buf.get_u16());
         assert_eq!(0, buf.get_u8());
         assert!(!buf.has_remaining());
 
