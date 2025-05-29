@@ -3,7 +3,7 @@
 use bytes::BufMut;
 use kafka_macros::WireLen;
 
-use crate::codec::lib::Encoder;
+use crate::codec::Encoder;
 
 #[derive(Debug, WireLen)]
 pub struct Tag {

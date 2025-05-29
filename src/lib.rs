@@ -1,6 +1,7 @@
 pub mod codec;
 pub mod handlers;
-pub mod message;
+pub mod request;
+pub mod response;
 pub mod primitives;
 
 pub use codec::WireLen;

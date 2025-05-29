@@ -1,28 +1,6 @@
-use bytes::BufMut;
+use std::fmt::Debug;
 use kafka_macros::WireLen;
-
-use crate::codec::lib::Encoder;
-use crate::message::api_keys::ApiKeys;
-use crate::primitives::{CompactArray, NullableString, Tag};
-
-#[derive(Debug, WireLen)]
-pub struct ResponseHeaderV0 {
-    pub(crate) correlation_id: i32,
-}
-
-impl ResponseHeaderV0 {
-    pub fn new(correlation_id: i32) -> Self {
-        Self { correlation_id }
-    }
-}
-
-impl Encoder for ResponseHeaderV0 {
-    fn encode(&self, dest: &mut bytes::BytesMut) ->  anyhow::Result<()> {
-        dest.put_i32(self.correlation_id);
-
-        Ok(())
-    }
-}
+use crate::primitives::{ApiKeys, CompactArray, Tag, NullableString};
 
 #[derive(Debug, WireLen)]
 pub struct RequestHeaderV2 {

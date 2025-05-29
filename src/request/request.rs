@@ -3,20 +3,13 @@ use bytes::Buf;
 use kafka_macros::WireLen;
 use tracing::{info, trace};
 
-use crate::{
-    unwrap_decode,
-    message::{
-        api_keys::ApiKeys,
-        body::{
-            ApiVersionRequestBody,
-            RequestBody
-        },
-        headers::RequestHeaderV2,
-        MAX_MESSAGE_SIZE
-    },
-    codec::{WireLen, Decoder},
-    primitives::{CompactArray, NullableString, Tag}
-};
+use crate::request::ApiVersionRequestBody;
+use crate::response::ApiVersion;
+use crate::unwrap_decode;
+use crate::codec::{WireLen, Decoder, MAX_MESSAGE_SIZE};
+use crate::primitives::{ApiKeys, CompactArray, NullableString, Tag};
+use super::body::RequestBody;
+use super::header::RequestHeaderV2;
 
 #[derive(WireLen)]
 pub struct KafkaRequest {

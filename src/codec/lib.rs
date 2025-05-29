@@ -1,5 +1,7 @@
 use bytes::BytesMut;
 
+pub const MAX_MESSAGE_SIZE: usize = 128;
+
 pub trait Decoder {
     /// Error to be propagated to `tokio_util::codec::Decoder`
     type Error;

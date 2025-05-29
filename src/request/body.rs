@@ -9,11 +9,6 @@ use crate::{
     unwrap_decode,
 };
 
-/// A common trait for request bodies which allows
-/// for debugging, getting the size of bytes it takes
-/// for encoding-decoding, and decoding
-pub trait _Body: std::fmt::Debug + WireLen + Decoder {}
-
 #[derive(Debug)]
 pub enum RequestBody {
     ApiVersions(ApiVersionRequestBody),

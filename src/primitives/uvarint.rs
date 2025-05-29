@@ -1,4 +1,4 @@
-use crate::codec::{lib::Encoder, Decoder, WireLen};
+use crate::codec::{Encoder, Decoder, WireLen};
 use bytes::{Buf, BufMut};
 use thiserror::Error;
 use tracing::trace;

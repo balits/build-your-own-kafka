@@ -1,9 +1,11 @@
-use crate::{message::{
-    api_keys::ApiKeys, headers::ResponseHeaderV0, request::KafkaRequest, response::{ApiVersion, ApiVersionResponseBody, KafkaResponse, ResponseBody},
-}, primitives::CompactArray, WireLen};
-
 use anyhow::{self, bail};
 
+use crate::{
+    primitives::{ApiKeys, CompactArray},
+    request::KafkaRequest,
+    response::{ApiVersion, ApiVersionResponseBody, KafkaResponse, ResponseBody, ResponseHeaderV0},
+    WireLen,
+};
 
 pub fn handle_request(req: &KafkaRequest) -> anyhow::Result<KafkaResponse> {
     match req.header.request_api_key {
@@ -19,14 +21,26 @@ fn handle_api_version(req: &KafkaRequest) -> anyhow::Result<KafkaResponse> {
     );
     let header = ResponseHeaderV0::new(req.header.correlation_id);
 
-    let mut api_versions = CompactArray::new();
-    api_versions.push(ApiVersion::new(18,4,4));
+    // "Assume that your broker only supports versions 0 to 4."
+    let res = if req.header.request_api_version > 4 || req.header.request_api_version < 0 {
+        let body = ResponseBody::ApiVersion(ApiVersionResponseBody {
+            error_code: 35,
+            api_versions: CompactArray::new(),
+            throttle_time: 0,
+            tag_buffer: CompactArray::new(),
+        });
+        let message_size = (header.wire_len() + body.wire_len()) as i32;
+        KafkaResponse::new(message_size, header, body)
+    } else {
+        let mut api_versions = CompactArray::new();
+        api_versions.push(ApiVersion::new(18, 4, 4));
 
-    let body_inner = ApiVersionResponseBody::new(0, api_versions, 0);
-    let body = ResponseBody::ApiVersion(body_inner);
+        let body_inner = ApiVersionResponseBody::new(0, api_versions, 0);
+        let body = ResponseBody::ApiVersion(body_inner);
 
-    let message_size = (header.wire_len() + body.wire_len()) as i32;
-    let res = KafkaResponse::new(message_size, header, body);
+        let message_size = (header.wire_len() + body.wire_len()) as i32;
+        KafkaResponse::new(message_size, header, body)
+    };
 
     Ok(res)
 }

@@ -7,9 +7,11 @@ mod compact_string;
 mod nullable_string;
 mod tag;
 mod uvarint;
+mod api_keys;
 
 pub(crate) use compact_array::CompactArray;
 pub(crate) use compact_string::CompactString;
 pub(crate) use nullable_string::NullableString;
 pub(crate) use tag::Tag;
 pub(crate) use uvarint::UVarint;
+pub(crate) use api_keys::ApiKeys;

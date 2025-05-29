@@ -1,6 +1,6 @@
-pub mod lib;
+mod lib;
 
-pub use lib::{Decoder, WireLen};
+pub use lib::{Encoder, Decoder, WireLen, MAX_MESSAGE_SIZE};
 
 macro_rules! impl_wire_length {
     ( $( $t:ty )*) => {

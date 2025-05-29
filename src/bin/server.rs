@@ -1,8 +1,8 @@
 use bytes::BytesMut;
-use kafka::codec::lib::Encoder;
+use kafka::codec::{Decoder, Encoder};
+use kafka::handlers::handle_request;
+use kafka::request::KafkaRequest;
 use kafka::WireLen;
-use kafka::{codec::Decoder, handlers::handle_request};
-use kafka::message::request::KafkaRequest;
 
 use anyhow::{bail, Context};
 use tokio::net::TcpListener;

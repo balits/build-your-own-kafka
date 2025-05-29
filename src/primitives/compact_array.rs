@@ -1,6 +1,6 @@
 use bytes::Buf;
 
-use crate::codec::{lib::Encoder, Decoder, WireLen};
+use crate::codec::{Encoder, Decoder, WireLen};
 use std::fmt::Debug;
 
 use super::UVarint;
@@ -106,7 +106,7 @@ mod tests {
     use bytes::BytesMut;
 
     use super::*;
-    use super::super::super::message::response::ApiVersion;
+    use super::super::super::response::ApiVersion;
     
     #[test]
     fn test_encode_simple() {
