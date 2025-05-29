@@ -12,7 +12,7 @@ use crate::codec::WireLen;
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum ApiKeys {
     ApiVersions = 18,
-    UNIMPLEMENTED = 0,
+    Unimplemented = 0,
 }
 
 impl WireLen for ApiKeys {
@@ -25,7 +25,7 @@ impl From<i16> for ApiKeys {
     fn from(value: i16) -> Self {
         match value {
             18 => ApiKeys::ApiVersions,
-            _ => ApiKeys::UNIMPLEMENTED,
+            _ => ApiKeys::Unimplemented,
         }
     }
 }

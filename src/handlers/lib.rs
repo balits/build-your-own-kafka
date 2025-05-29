@@ -10,7 +10,7 @@ use crate::{
 pub fn handle_request(req: &KafkaRequest) -> anyhow::Result<KafkaResponse> {
     match req.header.request_api_key {
         ApiKeys::ApiVersions => handle_api_version(req),
-        ApiKeys::UNIMPLEMENTED => bail!("Api key not implemented"),
+        ApiKeys::Unimplemented => bail!("Api key not implemented"),
     }
 }
 

@@ -62,7 +62,7 @@ impl Decoder for NullableString {
         if src.remaining() < 2 {
             // not enough space for length,
             // reserve and signal to the callers that the operation failed
-            // but no error happend, so we can wait on the next frame
+            // but no error happend
             src.reserve(2);
             return Ok(None);
         }
@@ -85,11 +85,14 @@ impl Decoder for NullableString {
 
         let len = len as usize;
         if src.remaining() < len {
+            // not enough space for the characters,
+            // reserve and signal to the callers that the operation failed
+            // but no error happend
             src.reserve(len);
             return Ok(None);
         }
 
-        let data = src.split_to(len);
+        let data = src.split_to(len); // now src points to [len..]
 
         let ns = NullableString::from_non_empty_str(
             std::str::from_utf8(&data).context("Invalid utf8 bytes")?,

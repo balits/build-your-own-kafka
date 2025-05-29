@@ -1,48 +1,17 @@
-use bytes::BytesMut;
-use kafka::codec::{Decoder, Encoder};
-use kafka::handlers::handle_request;
-use kafka::request::KafkaRequest;
-use kafka::WireLen;
+use kafka::broker::Broker;
 
-use anyhow::{bail, Context};
-use tokio::net::TcpListener;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tracing::info;
+use anyhow::Context;
 use tracing_subscriber::FmtSubscriber;
-
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let subscriber = FmtSubscriber::builder()
-        .with_max_level(tracing::Level::INFO)
+        .with_max_level(tracing::Level::TRACE)
         .finish();
 
     tracing::subscriber::set_global_default(subscriber)
         .context("setting default subscriber failed")?;
 
-    let listener = TcpListener::bind("127.0.0.1:9092").await?;
-    info!("Listening on port 9092");
-
-    let (socket, addr) = listener.accept().await.context("Accepting sockets")?;
-    info!("Socket connected {addr}");
-
-    let (mut r, mut w) = tokio::io::split(socket);
-    // now i know what the size will be, but i should probably work around this hard coded value
-    let mut buf = BytesMut::with_capacity(128); 
-    let n = r.read_buf(&mut buf).await.context("Reading from connection")?;
-    if n == 0 {
-        bail!("EOF or buffer is full");
-    }
-    let req = KafkaRequest::decode(&mut buf, None)?.expect("Request was None <- Not enough bytes were supplied");
-
-    let res = handle_request(&req)?;
-
-    let mut buf = BytesMut::with_capacity(res.wire_len());
-    res.encode(&mut buf)?;
-
-    // info!("[{}]", buf.iter().enumerate().map(|(i, b)| format!("(i:{i}: byte:{:X})", b)).collect::<Vec<_>>().join(", "));
-
-    w.write_all_buf(&mut buf).await?;
-
-    Ok(())
+    let broker = Broker::new().await;
+    broker.run().await
 }

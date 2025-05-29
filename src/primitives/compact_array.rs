@@ -1,4 +1,4 @@
-use bytes::Buf;
+use bytes::{Buf, BufMut};
 
 use crate::codec::{Encoder, Decoder, WireLen};
 use std::fmt::Debug;
@@ -92,7 +92,12 @@ impl<T: WireLen> Decoder for CompactArray<T> {
 
 impl<T: WireLen + Encoder> Encoder for CompactArray<T> {
     fn encode(&self, dest: &mut bytes::BytesMut) ->  anyhow::Result<()> {
-        let u = UVarint(self.len() as u32);
+        if self.inner.is_empty() {
+            dest.put_u8(0);
+            return Ok(());
+        }
+
+        let u = UVarint((self.len() + 1) as u32);
         UVarint::encode(&u, dest)?;
         for e in &self.inner {
             Encoder::encode(e, dest)?;

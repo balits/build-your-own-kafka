@@ -1,9 +1,9 @@
-use anyhow::ensure;
-use bytes::{self, Buf};
+use anyhow::{bail, ensure};
+use bytes::{self, Buf, BytesMut};
 use kafka_macros::WireLen;
 use tracing::trace;
 
-use crate::primitives::{CompactArray, CompactString, Tag};
+use crate::primitives::{ApiKeys, CompactArray, CompactString, Tag};
 use crate::{
     codec::{Decoder, WireLen},
     unwrap_decode,
@@ -14,15 +14,26 @@ pub enum RequestBody {
     ApiVersions(ApiVersionRequestBody),
 }
 
+impl RequestBody {
+    pub fn decode_by_key(key: &ApiKeys, src: &mut BytesMut, size: Option<usize>) -> anyhow::Result<Option<Self>> {
+        match key {
+            ApiKeys::ApiVersions => {
+                let inner = unwrap_decode!(ApiVersionRequestBody::decode(src, size));
+
+                Ok(Some(RequestBody::ApiVersions(inner)))
+            }
+            ApiKeys::Unimplemented => bail!("Couldnt decode body based on api key {key} as it is unimplemented!")
+        }
+    }
+}
+
 impl WireLen for RequestBody {
     fn wire_len(&self) -> usize {
         match self {
-            RequestBody::ApiVersions(b) => {
-                b.wire_len()
-            },
+            RequestBody::ApiVersions(b) => b.wire_len(),
         }
     }
- }
+}
 
 #[derive(Debug, WireLen)]
 pub struct ApiVersionRequestBody {
@@ -63,7 +74,7 @@ impl Decoder for ApiVersionRequestBody {
 
         if let Some(sz) = size {
             let wl = body.wire_len();
-               ensure!(
+            ensure!(
                 sz == wl,
                 "Size of body does not meet expectations, got: {wl}, expected: {sz}"
             );

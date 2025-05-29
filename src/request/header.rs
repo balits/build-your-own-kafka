@@ -1,6 +1,7 @@
 use std::fmt::Debug;
+use bytes::Buf;
 use kafka_macros::WireLen;
-use crate::primitives::{ApiKeys, CompactArray, Tag, NullableString};
+use crate::{codec::Decoder, primitives::{ApiKeys, CompactArray, NullableString, Tag}, unwrap_decode};
 
 #[derive(Debug, WireLen)]
 pub struct RequestHeaderV2 {
@@ -30,5 +31,35 @@ impl RequestHeaderV2 {
             client_id,
             tag_buffer,
         }
+    }
+}
+
+impl Decoder for RequestHeaderV2 {
+    type Error = anyhow::Error;
+
+    fn decode( src: &mut bytes::BytesMut, _: Option<usize>,) -> Result<Option<Self>, Self::Error>
+    where
+        Self: Sized + crate::WireLen
+    {
+        if src.remaining() < 8 {
+            src.reserve(8);
+            return Ok(None);
+        }
+        let request_api_key = src.get_i16();
+        let request_api_version = src.get_i16();
+        let correlation_id = src.get_i32();
+
+        let client_id = unwrap_decode!(NullableString::decode(src, None));
+        let tag_buffer = unwrap_decode!(CompactArray::<Tag>::decode(src, None));
+
+        let h = RequestHeaderV2::new(
+            request_api_key,
+            request_api_version,
+            correlation_id,
+            client_id,
+            tag_buffer,
+        );
+
+        Ok(Some(h))
     }
 }

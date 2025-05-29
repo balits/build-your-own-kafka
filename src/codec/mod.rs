@@ -21,6 +21,9 @@ impl_wire_length!(u8 u16 u32 u64 i8 i16 i32 i64 usize isize bool);
 /// Use it to return early in a decode function, or in any function which returns an
 /// `Result<Option<T, E>>`, where T, E is unkown to this macro, so the user should be aware of
 /// them, and call this macro in appropriate places
+///
+/// # Examples
+/// 
 /// ```rust
 /// let x: CustomType = match CustomType::decode(src)
 ///     Ok(opt) => match opt {
