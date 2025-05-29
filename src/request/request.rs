@@ -5,7 +5,7 @@ use tracing::{info, trace};
 
 use super::body::RequestBody;
 use super::header::RequestHeaderV2;
-use crate::codec::{Decoder, MAX_MESSAGE_SIZE, WireLen};
+use crate::codec::{Decoder, WireLen, MAX_MESSAGE_SIZE};
 use crate::unwrap_decode;
 
 #[derive(WireLen)]

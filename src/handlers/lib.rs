@@ -10,7 +10,7 @@ use crate::{
 pub fn handle_request(req: &KafkaRequest) -> anyhow::Result<KafkaResponse> {
     match req.header.request_api_key {
         ApiKeys::ApiVersions => handle_api_version(req),
-        ApiKeys::Unimplemented => bail!("Api key not implemented"),
+        _ => bail!("Api key not implemented"),
     }
 }
 
@@ -33,7 +33,8 @@ fn handle_api_version(req: &KafkaRequest) -> anyhow::Result<KafkaResponse> {
         KafkaResponse::new(message_size, header, body)
     } else {
         let mut api_versions = CompactArray::new();
-        api_versions.push(ApiVersion::new(18, 4, 4));
+        api_versions.push(ApiVersion::new(18, 0, 4));
+        api_versions.push(ApiVersion::new(75, 0, 0));
 
         let body_inner = ApiVersionResponseBody::new(0, api_versions, 0);
         let body = ResponseBody::ApiVersion(body_inner);

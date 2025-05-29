@@ -26,8 +26,8 @@ impl RequestBody {
 
                 Ok(Some(RequestBody::ApiVersions(inner)))
             }
-            ApiKeys::Unimplemented => {
-                bail!("Couldnt decode body based on api key {key} as it is unimplemented!")
+            k => {
+                bail!("Couldnt decode body based on api key {k} as it is unimplemented!")
             }
         }
     }

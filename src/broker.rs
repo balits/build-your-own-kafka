@@ -6,7 +6,7 @@ use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::{TcpListener, TcpStream},
 };
-use tracing::{debug, error, info, warn};
+use tracing::{error, info, warn};
 
 use crate::{
     codec::{Decoder, Encoder},
