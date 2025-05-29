@@ -1,4 +1,4 @@
-use bytes::{Buf, BufMut};
+use bytes::BufMut;
 use kafka_macros::WireLen;
 
 use crate::codec::lib::Encoder;

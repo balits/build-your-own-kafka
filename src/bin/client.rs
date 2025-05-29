@@ -19,31 +19,6 @@ fn main() -> io::Result<()> {
 
     ];
 
-    let res = [
-        0x00, 0x00, 0x00, 0x21, // size 33
-        0x00, 0x00, 0x00, 0x07, // corr_id
-        0x00, 0x00, // error code
-        0x04, // api versions compact array len
-
-        0x00, 0x01, // api key
-        0x00, 0x00,// min version
-        0x00, 0x11, // max version
-        0x00, // empty tag buff
-
-        0x00, 0x12, // api key
-        0x00, 0x00, // min version
-        0x00, 0x04, // max version
-        0x00, // empty tag buff
-
-        0x00, 0x4b, // api key
-        0x00, 0x00, // min version
-        0x00, 0x00, // max version
-        0x00, // empty tag buff
-
-        0x00, 0x00, 0x00, 0x00, // throttle time
-        0x00 // empty tag buffer
-    ];
-
     // Connect to the TCP server
     let mut stream = TcpStream::connect("127.0.0.1:9092")?;
     println!("Connected to server, sending bytes...");

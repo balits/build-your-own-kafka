@@ -1,7 +1,7 @@
 use bytes::Buf;
 
 use crate::codec::{lib::Encoder, Decoder, WireLen};
-use std::{fmt::Debug, u32, usize};
+use std::fmt::Debug;
 
 use super::UVarint;
 
@@ -50,7 +50,7 @@ impl<T: WireLen> CompactArray<T> {
     }
 
     pub fn iter(&self) -> std::slice::Iter<'_, T> {
-        return self.inner.iter()
+        self.inner.iter()
     }
 }
 
@@ -75,13 +75,9 @@ impl<T: WireLen> Decoder for CompactArray<T> {
     type Error = anyhow::Error;
 
     fn decode(src: &mut bytes::BytesMut, _: Option<usize>) -> Result<Option<Self>, Self::Error> {
-        // CompactArray is used for storing tags, we dont care about it
-        // since its usually empty anyways
-        //
-        // let _let_plus_one = match UVarint::decode(src, None)? {
-        //     Some(v) => v.0,
-        //     None => return Ok(None),
-        // };
+        // TODO: Refactor, cuz using compact array decode for only tagbuffers
+        // and therefore leaving it empty is whacky
+       
         if src.remaining() < 1 {
             src.reserve(1);
             return Ok(None);

@@ -28,25 +28,20 @@ async fn main() -> anyhow::Result<()> {
 
     let (mut r, mut w) = tokio::io::split(socket);
     // now i know what the size will be, but i should probably work around this hard coded value
-    let mut buf = BytesMut::with_capacity(39); 
+    let mut buf = BytesMut::with_capacity(128); 
     let n = r.read_buf(&mut buf).await.context("Reading from connection")?;
     if n == 0 {
         bail!("EOF or buffer is full");
     }
-    let req = KafkaRequest::decode(&mut buf, None).unwrap();
+    let req = KafkaRequest::decode(&mut buf, None)?.expect("Request was None <- Not enough bytes were supplied");
 
-    let res = if let Some(ref req) = req {
-        handle_request(req)?
-    } else {
-        bail!("Request was None <- Not enough bytes were supplied")
-    };
+    let res = handle_request(&req)?;
 
     let mut buf = BytesMut::with_capacity(res.wire_len());
     res.encode(&mut buf)?;
-    dbg!(res);
-    {
-        println!("[{}]", buf.iter().enumerate().map(|(i, b)| format!("(i:{i}: byte:{:X})", b)).collect::<Vec<_>>().join(", "));
-    }
+
+    // info!("[{}]", buf.iter().enumerate().map(|(i, b)| format!("(i:{i}: byte:{:X})", b)).collect::<Vec<_>>().join(", "));
+
     w.write_all_buf(&mut buf).await?;
 
     Ok(())

@@ -20,9 +20,9 @@ fn handle_api_version(req: &KafkaRequest) -> anyhow::Result<KafkaResponse> {
     let header = ResponseHeaderV0::new(req.header.correlation_id);
 
     let mut api_versions = CompactArray::new();
-    api_versions.push(ApiVersion::new(18,0,4));
+    api_versions.push(ApiVersion::new(18,4,4));
 
-    let body_inner = ApiVersionResponseBody::new(35, api_versions, 0);
+    let body_inner = ApiVersionResponseBody::new(0, api_versions, 0);
     let body = ResponseBody::ApiVersion(body_inner);
 
     let message_size = (header.wire_len() + body.wire_len()) as i32;

@@ -1,7 +1,7 @@
 use bytes::{BufMut, BytesMut};
 use kafka_macros::WireLen;
 
-use crate::{codec::lib::Encoder, message::headers::ResponseHeaderV0, primitives::{CompactArray, Tag, UVarint}, WireLen};
+use crate::{codec::lib::Encoder, message::headers::ResponseHeaderV0, primitives::{CompactArray, Tag}, WireLen};
 
 #[derive(Debug, WireLen)]
 pub struct KafkaResponse {
@@ -66,17 +66,16 @@ impl Encoder for KafkaResponse {
     /// This is the top level call to decode
     fn encode(&self, dest: &mut BytesMut) -> anyhow::Result<()> {
         dest.put_i32(self.message_size);
-
         dest.put_i32(self.header.correlation_id);
 
-        let body = match self.body { ResponseBody::ApiVersion(ref b) => b };
+        let ResponseBody::ApiVersion(ref body) = self.body;
         dest.put_u16(body.error_code);
         dest.put_u8(body.api_versions.len() as u8 + 1); // since its N + 1 for N elements
         
         for ver in body.api_versions.iter() {
             dest.put_u16(ver.api_key);
-            dest.put_u16(ver.min_sup_version);
-            dest.put_u16(ver.max_sup_version);
+            dest.put_u16(ver.min_version);
+            dest.put_u16(ver.max_version);
             dest.put_u8(0); // tag buff
         }
         dest.put_u32(body.throttle_time);
@@ -89,22 +88,22 @@ impl Encoder for KafkaResponse {
 #[derive(Debug, WireLen)]
 pub struct ApiVersion {
     pub(crate) api_key: u16,
-    pub(crate) min_sup_version: u16,
-    pub(crate) max_sup_version: u16,
+    pub(crate) min_version: u16,
+    pub(crate) max_version: u16,
     pub(crate) tag_buffer: CompactArray<Tag>
 }
 
 impl ApiVersion {
     pub fn new(api_key: u16, min_sup_version: u16, max_sup_version: u16) -> Self {
-        Self { api_key, min_sup_version, max_sup_version, tag_buffer: CompactArray::new() }
+        Self { api_key, min_version: min_sup_version, max_version: max_sup_version, tag_buffer: CompactArray::new() }
     }
 }
 
 impl Encoder for ApiVersion {
     fn encode(&self, dest: &mut BytesMut) ->  anyhow::Result<()> {
        dest.put_u16(self.api_key);
-       dest.put_u16(self.min_sup_version);
-       dest.put_u16(self.max_sup_version);
+       dest.put_u16(self.min_version);
+       dest.put_u16(self.max_version);
        self.tag_buffer.encode(dest)
     }
 }
