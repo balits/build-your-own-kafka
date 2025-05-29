@@ -9,19 +9,10 @@ use crate::codec::WireLen;
 /// easier for me to code as I dont have to wrap everything into
 /// Options and Results or use monadic functions.
 #[repr(i16)]
-#[derive(PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum ApiKeys {
     ApiVersions = 18,
     UNIMPLEMENTED = 0,
-}
-
-impl Debug for ApiKeys {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ApiKeys::ApiVersions => f.write_str(&format!("ApiVersions({})", self)),
-            _ => f.write_str("ApiKey(unimplemented)")
-        }
-    }
 }
 
 impl WireLen for ApiKeys {
@@ -41,6 +32,6 @@ impl From<i16> for ApiKeys {
 
 impl Display for ApiKeys {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self)
+        write!(f, "{}", *self as i16)
     }
 }

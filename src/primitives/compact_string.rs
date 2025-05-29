@@ -1,29 +1,17 @@
-use std::fmt::Debug;
+// use std::fmt::Debug;
 
 use anyhow::Context;
-use tracing::{debug, trace};
+use tracing::trace;
 
 use crate::{
-    codec::{CustomDecoder, WireLen},
+    codec::{Decoder, WireLen},
     primitives::MAX_STRING_SIZE,
 };
 
 use super::UVarint;
 
+#[derive(Debug)]
 pub struct CompactString(pub String);
-
-impl Debug for CompactString {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if self.0.len() == 0 {
-            f.write_str("CompactString { null }")
-        } else {
-            f.debug_struct("CompactString")
-                .field("len", &self.0.len())
-                .field("data", &self.0.as_str())
-                .finish()
-        }
-    }
-}
 
 impl From<String> for CompactString {
     fn from(value: String) -> Self {
@@ -38,7 +26,7 @@ impl WireLen for CompactString {
     }
 }
 
-impl CustomDecoder for CompactString {
+impl Decoder for CompactString {
     type Error = anyhow::Error;
 
     fn decode(src: &mut bytes::BytesMut, _: Option<usize>) -> Result<Option<Self>, Self::Error>
@@ -49,8 +37,7 @@ impl CustomDecoder for CompactString {
             Some(v) => v.0,
             None => return Ok(None),
         };
-
-        trace!(CompactString_len_uvarint = len_plus_one);
+        trace!(len_plus_one=len_plus_one);
 
         if len_plus_one == 0 {
             return Ok(Some(CompactString("".into())));
@@ -66,11 +53,6 @@ impl CustomDecoder for CompactString {
         if src.len() < len {
             src.reserve(len);
             return Ok(None);
-            // bail!(
-            //     "Buffer doesnt have enough bytes to read bytes to string (expected {}, got {})",
-            //     len,
-            //     buf.len()
-            // )
         }
 
         let data = src.split_to(len);

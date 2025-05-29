@@ -1,31 +1,42 @@
+use anyhow::ensure;
 use bytes::{self, Buf};
 use kafka_macros::WireLen;
 use tracing::trace;
 
-use crate::primitives::CompactString;
+use crate::primitives::{CompactArray, CompactString, Tag};
 use crate::{
-    codec::{CustomDecoder, WireLen},
+    codec::{Decoder, WireLen},
     unwrap_decode,
 };
 
 /// A common trait for request bodies which allows
 /// for debugging, getting the size of bytes it takes
 /// for encoding-decoding, and decoding
-pub trait _Body: std::fmt::Debug + WireLen + CustomDecoder {}
+pub trait _Body: std::fmt::Debug + WireLen + Decoder {}
 
 #[derive(Debug)]
 pub enum RequestBody {
     ApiVersions(ApiVersionRequestBody),
 }
 
+impl WireLen for RequestBody {
+    fn wire_len(&self) -> usize {
+        match self {
+            RequestBody::ApiVersions(b) => {
+                b.wire_len()
+            },
+        }
+    }
+ }
+
 #[derive(Debug, WireLen)]
 pub struct ApiVersionRequestBody {
     pub(crate) client_software_name: CompactString,
     pub(crate) client_software_version: CompactString,
-    // pub(crate) tag_buffer: CompactArray<Tag>,
+    tag_buffer: CompactArray<Tag>,
 }
 
-impl CustomDecoder for ApiVersionRequestBody {
+impl Decoder for ApiVersionRequestBody {
     type Error = anyhow::Error;
 
     fn decode(src: &mut bytes::BytesMut, size: Option<usize>) -> Result<Option<Self>, Self::Error>
@@ -39,22 +50,25 @@ impl CustomDecoder for ApiVersionRequestBody {
             }
         }
 
+        trace!("parsing client_software_name");
         let client_software_name = unwrap_decode!(CompactString::decode(src, None));
-        let client_software_version = unwrap_decode!(CompactString::decode(src, None));
-        //let tag_buffer = unwrap_decode!(CompactArray::<Tag>::decode(src, None));
-
         trace!(client_software_name = ?client_software_name, wire_len = client_software_name.wire_len());
+
+        trace!("parsing client_software_version");
+        let client_software_version = unwrap_decode!(CompactString::decode(src, None));
         trace!(client_software_version = ?client_software_version, wire_len = client_software_version.wire_len());
+
+        let tag_buffer = unwrap_decode!(CompactArray::decode(src, None));
 
         let body = ApiVersionRequestBody {
             client_software_name,
             client_software_version,
-            // tag_buffer,
+            tag_buffer,
         };
 
         if let Some(sz) = size {
             let wl = body.wire_len();
-            debug_assert!(
+               ensure!(
                 sz == wl,
                 "Size of body does not meet expectations, got: {wl}, expected: {sz}"
             );

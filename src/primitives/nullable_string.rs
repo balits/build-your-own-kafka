@@ -4,7 +4,7 @@ use anyhow::{bail, ensure, Context};
 use bytes::Buf;
 
 use crate::{
-    codec::{CustomDecoder, WireLen},
+    codec::{Decoder, WireLen},
     primitives::MAX_STRING_SIZE,
 };
 
@@ -21,7 +21,7 @@ impl NullableString {
     /// than the max size of the length prefix, i.e. a 2 byte
     /// signed integer, as specified by the `[kafka docs](https://kafka.apache.org/protocol.html)`
     pub fn from_non_empty_str(value: &str) -> Self {
-        let inner = if value.len() != 0 && value.len() < Self::MAX {
+        let inner = if !value.is_empty() && value.len() < Self::MAX {
             Some(value.to_string())
         } else {
             None
@@ -43,7 +43,7 @@ impl WireLen for NullableString {
 
         if let Some(ref s) = self.inner {
             assert!(
-                s.len() != 0 && s.len() < Self::MAX,
+                !s.is_empty() && s.len() < Self::MAX,
                 "invalid size of string"
             );
             length + s.len()
@@ -53,13 +53,13 @@ impl WireLen for NullableString {
     }
 }
 
-impl CustomDecoder for NullableString {
+impl Decoder for NullableString {
     type Error = anyhow::Error;
     fn decode(src: &mut bytes::BytesMut, _: Option<usize>) -> Result<Option<Self>, Self::Error>
     where
         Self: Sized + WireLen,
     {
-        if src.len() < 2 {
+        if src.remaining() < 2 {
             // not enough space for length,
             // reserve and signal to the callers that the operation failed
             // but no error happend, so we can wait on the next frame

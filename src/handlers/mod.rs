@@ -1,1 +1,3 @@
-pub mod request_handler;
+mod lib;
+
+pub use lib::handle_request;

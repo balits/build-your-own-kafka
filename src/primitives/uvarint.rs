@@ -1,19 +1,39 @@
-use crate::codec::{CustomDecoder, WireLen};
-use bytes::Buf;
+use crate::codec::{lib::Encoder, Decoder, WireLen};
+use bytes::{Buf, BufMut};
 use thiserror::Error;
 use tracing::trace;
 
-#[derive(Error, Debug)]
+
+
+pub struct UVarint(pub(crate) u32);
+
+impl WireLen for UVarint {
+    fn wire_len(&self) -> usize {
+       UVarint::wire_len_of(self.0)
+    }
+}
+
+impl UVarint {
+    pub const fn wire_len_of(num: u32) -> usize {
+        match num {
+            0..=0x7F => 1,                // 7 bits
+            0x80..=0x3FFF => 2,           // 14 bits
+            0x4000..=0x1F_FFFF => 3,      // 21 bits
+            0x20_0000..=0x0FFF_FFFF => 4, // 28 bits
+            _ => 5,                       // 32 bits;
+        }
+    }
+}
+
+#[derive(Error, Debug, PartialEq, Eq)]
 pub enum UVarintDecodeError {
-    #[error("{0} bit overflow")]
-    Overflow(u8),
+    #[error("overflow for u32")]
+    Overflow,
     #[error("Unexpected end of input")]
     UnexpectedEndOfInput,
 }
 
-pub struct UVarint(pub(super) u32);
-
-impl CustomDecoder for UVarint {
+impl Decoder for UVarint {
     type Error = UVarintDecodeError;
 
     /// see (wiki of uvarint)[https://en.wikipedia.org/wiki/LEB128]
@@ -29,12 +49,14 @@ impl CustomDecoder for UVarint {
             count += 1;
             let byte = src.get_u8();
 
-            trace!(" {}. byte is {:x}", count, byte);
+            trace!(" {}. iter:  byte = {:x}", count, byte);
             let value = (byte & 0x7F) as u32;
+            trace!(" {}. iter: value = {:x}", count, value);
             if shift >= 32 && value != 0 {
-                return Err(UVarintDecodeError::Overflow(32));
+                return Err(UVarintDecodeError::Overflow);
             }
             result |= value << shift;
+            trace!(" {}. iter: result = {}", count, result);
             if (byte & 0x80) == 0 {
                 return Ok(Some(UVarint(result)));
             }
@@ -45,17 +67,19 @@ impl CustomDecoder for UVarint {
     }
 }
 
-impl WireLen for UVarint {
-    fn wire_len(&self) -> usize {
-        match self.0 {
-            0..=0x7F => 1,                // 7 bits
-            0x80..=0x3FFF => 2,           // 14 bits
-            0x4000..=0x1F_FFFF => 3,      // 21 bits
-            0x20_0000..=0x0FFF_FFFF => 4, // 28 bits
-            _ => 5,                       // 32 bits;
+impl Encoder for UVarint {
+    /// see wiki https://en.wikipedia.org/wiki/LEB128#Encode_signed_32-bit_integer
+    fn encode(&self, dest: &mut bytes::BytesMut) ->  anyhow::Result<()> {
+        let mut value = self.0;
+        while value >= 0x80 {
+            dest.put_u8((value as u8 & 0x7F) | 0x80);
+            value >>= 7;
         }
+        dest.put_u8(value as u8);
+        Ok(())
     }
 }
+
 
 #[cfg(test)]
 mod tests {
@@ -104,10 +128,7 @@ mod tests {
         let mut buf = BytesMut::from(&[0x80][..]);
         let result = UVarint::decode(&mut buf, None);
         match result {
-            Err(e) => match e {
-                UVarintDecodeError::UnexpectedEndOfInput => {}
-                _ => panic!("Expected UnexpectedEndOfInput"),
-            },
+            Err(UVarintDecodeError::UnexpectedEndOfInput) =>  {},
             _ => panic!("Expected UnexpectedEndOfInput"),
         }
     }
@@ -126,10 +147,19 @@ mod tests {
         let result = UVarint::decode(&mut buf, None);
         match result {
             Err(e) => match e {
-                UVarintDecodeError::UnexpectedEndOfInput => {}
-                _ => panic!("Expected UnexpectedEndOfInput"),
+                UVarintDecodeError::Overflow => {}
+                _ => panic!("Expected Overflow, got {}", e),
             },
-            _ => panic!("Expected UnexpectedEndOfInput"),
+            _ => panic!("Expected Overflow, got Ok(_)"),
         }
+    }
+
+    #[test]
+    fn test_encode_simple() {
+        let u = UVarint(4);
+        let mut buf = BytesMut::new();
+        u.encode(&mut buf).unwrap();
+
+        assert_eq!(4, *buf.iter().next().unwrap());
     }
 }

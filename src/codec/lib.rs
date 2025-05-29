@@ -1,7 +1,6 @@
-/// Custom Decoder trait for structs,
-/// meant to be used inside `tokio_util::coder::Decoder`
-/// by nested structs
-pub trait CustomDecoder {
+use bytes::BytesMut;
+
+pub trait Decoder {
     /// Error to be propagated to `tokio_util::codec::Decoder`
     type Error;
 
@@ -25,4 +24,13 @@ pub trait CustomDecoder {
 /// with traits in `tokio_util::codec`
 pub trait WireLen {
     fn wire_len(&self) -> usize;
+}
+
+/// Custom Decoder trait to turn structs into bytes.
+/// the `dest` buffer could be passed to other calls to `encode`
+/// provided that they grow the buffer to the appropriate size.
+/// Alternatively a call to the top level `encode`, such when encoding
+/// a `KafkaResponse` its optimal to reserve space using the `WireLen` trait
+pub trait Encoder{
+    fn encode(&self, dest: &mut BytesMut) ->  anyhow::Result<()>;
 }

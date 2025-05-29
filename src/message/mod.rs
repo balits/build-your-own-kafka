@@ -1,5 +1,7 @@
-pub(crate) mod api_keys;
-pub(crate) mod body;
-pub(crate) mod headers;
-pub(crate) mod request;
-pub(crate) mod response;
+pub mod api_keys;
+pub mod body;
+pub mod headers;
+pub mod request;
+pub mod response;
+
+pub const MAX_MESSAGE_SIZE: usize = 128;

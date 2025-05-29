@@ -44,9 +44,7 @@ async fn main() -> anyhow::Result<()> {
     let mut buf = BytesMut::with_capacity(res.wire_len());
     res.encode(&mut buf)?;
     dbg!(res);
-    {
-        println!("[{}]", buf.iter().enumerate().map(|(i, b)| format!("(i:{i}: byte:{:X})", b)).collect::<Vec<_>>().join(", "));
-    }
+    println!("{}", &buf);
     w.write_all_buf(&mut buf).await?;
 
     Ok(())

@@ -1,8 +1,6 @@
-pub mod codec;
 pub mod lib;
 
-pub use codec::{KafkaCodec, MAX_BODY_SIZE};
-pub use lib::{ CustomDecoder, WireLen};
+pub use lib::{Decoder, WireLen};
 
 macro_rules! impl_wire_length {
     ( $( $t:ty )*) => {
