@@ -1,15 +1,17 @@
 use anyhow::{self, bail};
 
 use crate::{
-    WireLen,
-    primitives::{ApiKeys, CompactArray},
+    types::ApiKeys,
+    primitives::CompactArray,
     request::KafkaRequest,
     response::{ApiVersion, ApiVersionResponseBody, KafkaResponse, ResponseBody, ResponseHeaderV0},
+    WireLen,
 };
 
 pub fn handle_request(req: &KafkaRequest) -> anyhow::Result<KafkaResponse> {
     match req.header.request_api_key {
         ApiKeys::ApiVersions => handle_api_version(req),
+        ApiKeys::DescribeTopicPartitions => handle_describe_topic_partition(req),
         _ => bail!("Api key not implemented"),
     }
 }
@@ -44,4 +46,19 @@ fn handle_api_version(req: &KafkaRequest) -> anyhow::Result<KafkaResponse> {
     };
 
     Ok(res)
+}
+
+/// It'll then connect to your server on port 9092 and send a DescribeTopicPartitions (v0) request. The request will contain a single topic with 1 partition.
+/// 
+/// ## The tester will validate that:
+/// 
+/// - The first 4 bytes of your response (the "message length") are valid.
+/// - The correlation ID in the response header matches the correlation ID in the request header.
+/// - The error code in the response body is 3 (UNKNOWN_TOPIC_OR_PARTITION).
+/// - The response body should be valid DescribeTopicPartitions (v0) Response.
+/// - The topic_name field in the response should be equal to the topic name sent in the request.
+/// - The topic_id field in the response should be equal to 00000000-0000-0000-0000-000000000000.
+/// - The partitions field in the response should be empty. (As there are no partitions assigned to this non-existent topic.)
+fn handle_describe_topic_partition(_req: &KafkaRequest) -> anyhow::Result<KafkaResponse> {
+    todo!()
 }

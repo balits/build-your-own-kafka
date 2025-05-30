@@ -1,6 +1,6 @@
-use bytes::{Buf, BufMut};
+use bytes::BufMut;
 
-use crate::codec::{Decoder, Encoder, WireLen};
+use crate::{codec::{Decoder, Encoder, WireLen}, unwrap_decode};
 use std::fmt::Debug;
 
 use super::UVarint;
@@ -74,25 +74,22 @@ impl<T: WireLen> WireLen for CompactArray<T> {
     }
 }
 
-impl<T: WireLen> Decoder for CompactArray<T> {
-    type Error = anyhow::Error;
+impl<T: WireLen + Decoder> Decoder for CompactArray<T> {
+    fn decode(src: &mut bytes::BytesMut, _: Option<usize>) -> anyhow::Result<Option<Self>> {
+        let uv = unwrap_decode!(UVarint::decode(src, None));
+        let len_plus_one = uv.0;
+        if len_plus_one == 0 {
+            return Ok(Some(CompactArray::new()));
+        }
+        let len = (len_plus_one - 1) as usize;
 
-    fn decode(src: &mut bytes::BytesMut, _: Option<usize>) -> Result<Option<Self>, Self::Error> {
-        // TODO: Refactor, cuz using compact array decode for only tagbuffers
-        // and therefore leaving it empty is whacky
-
-        if src.remaining() < 1 {
-            src.reserve(1);
-            return Ok(None);
+        let mut me = CompactArray::with_capacity(len);
+        for _ in 0..len {
+            let value = unwrap_decode!(T::decode(src, None));
+            me.push(value);
         }
 
-        let zero = src.get_u8();
-        anyhow::ensure!(
-            zero == 0,
-            "Tag buffers (and therefore CompactArrays) are expected to be zero length"
-        );
-
-        Ok(Some(CompactArray::new()))
+        Ok(Some(me))
     }
 }
 
@@ -115,6 +112,7 @@ impl<T: WireLen + Encoder> Encoder for CompactArray<T> {
 #[cfg(test)]
 mod tests {
     use bytes::BytesMut;
+    use bytes::Buf;
 
     use super::super::super::response::ApiVersion;
     use super::*;

@@ -8,7 +8,7 @@ use super::header::RequestHeaderV2;
 use crate::codec::{Decoder, WireLen, MAX_MESSAGE_SIZE};
 use crate::unwrap_decode;
 
-#[derive(WireLen)]
+#[derive(WireLen, Debug)]
 pub struct KafkaRequest {
     pub message_size: i32,
     pub header: RequestHeaderV2,
@@ -26,9 +26,7 @@ impl KafkaRequest {
 }
 
 impl Decoder for KafkaRequest {
-    type Error = anyhow::Error;
-
-    fn decode(src: &mut bytes::BytesMut, _: Option<usize>) -> Result<Option<Self>, Self::Error>
+    fn decode(src: &mut bytes::BytesMut, _: Option<usize>) -> anyhow::Result<Option<Self>>
     where
         Self: Sized + crate::WireLen,
     {

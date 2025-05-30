@@ -1,11 +1,8 @@
-// use std::fmt::Debug;
-
 use anyhow::Context;
-use tracing::trace;
 
 use crate::{
     codec::{Decoder, WireLen},
-    primitives::MAX_STRING_SIZE,
+    primitives::MAX_STRING_SIZE, unwrap_decode,
 };
 
 use super::UVarint;
@@ -13,9 +10,24 @@ use super::UVarint;
 #[derive(Debug)]
 pub struct CompactString(pub String);
 
-impl From<String> for CompactString {
-    fn from(value: String) -> Self {
-        Self(value)
+impl Default for CompactString {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl CompactString {
+    pub fn new() -> Self {
+        Self(String::new())
+    }
+}
+
+impl<S> From<S> for CompactString 
+where 
+    S: Into<String>
+{
+    fn from(value: S) -> Self {
+        Self(value.into())
     }
 }
 
@@ -27,20 +39,15 @@ impl WireLen for CompactString {
 }
 
 impl Decoder for CompactString {
-    type Error = anyhow::Error;
-
-    fn decode(src: &mut bytes::BytesMut, _: Option<usize>) -> Result<Option<Self>, Self::Error>
+    fn decode(src: &mut bytes::BytesMut, _: Option<usize>) -> anyhow::Result<Option<Self>>
     where
         Self: Sized + WireLen,
     {
-        let len_plus_one = match UVarint::decode(src, None)? {
-            Some(v) => v.0,
-            None => return Ok(None),
-        };
-        trace!(len_plus_one = len_plus_one);
+        let uv = unwrap_decode!(UVarint::decode(src, None));
+        let len_plus_one = uv.0;
 
         if len_plus_one == 0 {
-            return Ok(Some(CompactString("".into())));
+            return Ok(Some(CompactString::new()));
         }
 
         let len = (len_plus_one - 1) as usize;
@@ -55,14 +62,11 @@ impl Decoder for CompactString {
             return Ok(None);
         }
 
-        let data = src.split_to(len);
-        trace!("Got data with len {}: data: {:?}", len, data);
-        trace!("Remaining data: {:?}", src);
+        let data = src.split_to(len).to_vec();
 
-        Ok(Some(
-            String::from_utf8(data.to_vec())
-                .context("Parsing compact string with len {len}")?
-                .into(),
-        ))
+        let raw =
+            String::from_utf8(data).context("Parsing compact string")?;
+
+        Ok(Some(raw.into()))
     }
 }

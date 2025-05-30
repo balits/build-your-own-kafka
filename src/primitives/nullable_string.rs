@@ -54,8 +54,7 @@ impl WireLen for NullableString {
 }
 
 impl Decoder for NullableString {
-    type Error = anyhow::Error;
-    fn decode(src: &mut bytes::BytesMut, _: Option<usize>) -> Result<Option<Self>, Self::Error>
+    fn decode(src: &mut bytes::BytesMut, _: Option<usize>) -> anyhow::Result<Option<Self>>
     where
         Self: Sized + WireLen,
     {

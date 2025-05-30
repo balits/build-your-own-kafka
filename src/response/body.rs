@@ -1,6 +1,7 @@
 use super::api_version::ApiVersion;
 use crate::codec::{Encoder, WireLen};
-use crate::primitives::{CompactArray, Tag};
+use crate::primitives::{CompactArray};
+use crate::types::Tag;
 use bytes::{BufMut, BytesMut};
 use kafka_macros::WireLen;
 

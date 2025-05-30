@@ -1,6 +1,7 @@
 use crate::codec::{Decoder, Encoder, WireLen};
 use bytes::{Buf, BufMut};
 use thiserror::Error;
+use anyhow::bail;
 use tracing::trace;
 
 pub struct UVarint(pub(crate) u32);
@@ -32,10 +33,8 @@ pub enum UVarintDecodeError {
 }
 
 impl Decoder for UVarint {
-    type Error = UVarintDecodeError;
-
     /// see (wiki of uvarint)[https://en.wikipedia.org/wiki/LEB128]
-    fn decode(src: &mut bytes::BytesMut, _: Option<usize>) -> Result<Option<Self>, Self::Error>
+    fn decode(src: &mut bytes::BytesMut, _: Option<usize>) -> anyhow::Result<Option<Self>>
     where
         Self: Sized + WireLen,
     {
@@ -51,7 +50,7 @@ impl Decoder for UVarint {
             let value = (byte & 0x7F) as u32;
             trace!(" {}. iter: value = {:x}", count, value);
             if shift >= 32 && value != 0 {
-                return Err(UVarintDecodeError::Overflow);
+                bail!(UVarintDecodeError::Overflow);
             }
             result |= value << shift;
             trace!(" {}. iter: result = {}", count, result);
@@ -61,7 +60,7 @@ impl Decoder for UVarint {
             shift += 7;
         }
 
-        Err(UVarintDecodeError::UnexpectedEndOfInput)
+        bail!(UVarintDecodeError::UnexpectedEndOfInput)
     }
 }
 
@@ -125,7 +124,10 @@ mod tests {
         let mut buf = BytesMut::from(&[0x80][..]);
         let result = UVarint::decode(&mut buf, None);
         match result {
-            Err(UVarintDecodeError::UnexpectedEndOfInput) => {}
+            Err(e) => match e.downcast_ref::<UVarintDecodeError>() {
+                Some(UVarintDecodeError::UnexpectedEndOfInput) => {}
+                _ => panic!("Expected UnexpectedEndOfInput"),
+            }
             _ => panic!("Expected UnexpectedEndOfInput"),
         }
     }
@@ -143,8 +145,8 @@ mod tests {
         let mut buf = BytesMut::from(&[0xFF, 0xFF, 0xFF, 0xFF, 0xFF][..]);
         let result = UVarint::decode(&mut buf, None);
         match result {
-            Err(e) => match e {
-                UVarintDecodeError::Overflow => {}
+            Err(e) => match e.downcast_ref::<UVarintDecodeError>() {
+                Some(UVarintDecodeError::Overflow) => {}
                 _ => panic!("Expected Overflow, got {}", e),
             },
             _ => panic!("Expected Overflow, got Ok(_)"),

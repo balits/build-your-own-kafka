@@ -1,57 +1,22 @@
-use anyhow::{bail, ensure};
-use bytes::{self, Buf, BytesMut};
 use kafka_macros::WireLen;
+use crate::types::Tag;
+use crate::unwrap_decode;
+use crate::primitives::*;
+use crate::codec::{Decoder, WireLen};
+use anyhow;
+use bytes::Buf;
 use tracing::trace;
 
-use crate::primitives::{ApiKeys, CompactArray, CompactString, Tag};
-use crate::{
-    codec::{Decoder, WireLen},
-    unwrap_decode,
-};
-
-#[derive(Debug)]
-pub enum RequestBody {
-    ApiVersions(ApiVersionRequestBody),
-}
-
-impl RequestBody {
-    pub fn decode_by_key(
-        key: &ApiKeys,
-        src: &mut BytesMut,
-        size: Option<usize>,
-    ) -> anyhow::Result<Option<Self>> {
-        match key {
-            ApiKeys::ApiVersions => {
-                let inner = unwrap_decode!(ApiVersionRequestBody::decode(src, size));
-
-                Ok(Some(RequestBody::ApiVersions(inner)))
-            }
-            k => {
-                bail!("Couldnt decode body based on api key {k} as it is unimplemented!")
-            }
-        }
-    }
-}
-
-impl WireLen for RequestBody {
-    fn wire_len(&self) -> usize {
-        match self {
-            RequestBody::ApiVersions(b) => b.wire_len(),
-        }
-    }
-}
 
 #[derive(Debug, WireLen)]
-pub struct ApiVersionRequestBody {
+pub struct ApiVersionsRequestBody {
     pub(crate) client_software_name: CompactString,
     pub(crate) client_software_version: CompactString,
     tag_buffer: CompactArray<Tag>,
 }
 
-impl Decoder for ApiVersionRequestBody {
-    type Error = anyhow::Error;
-
-    fn decode(src: &mut bytes::BytesMut, size: Option<usize>) -> Result<Option<Self>, Self::Error>
+impl Decoder for ApiVersionsRequestBody {
+    fn decode(src: &mut bytes::BytesMut, size: Option<usize>) -> anyhow::Result<Option<Self>>
     where
         Self: Sized + WireLen,
     {
@@ -72,7 +37,7 @@ impl Decoder for ApiVersionRequestBody {
 
         let tag_buffer = unwrap_decode!(CompactArray::decode(src, None));
 
-        let body = ApiVersionRequestBody {
+        let body = ApiVersionsRequestBody {
             client_software_name,
             client_software_version,
             tag_buffer,
@@ -80,7 +45,7 @@ impl Decoder for ApiVersionRequestBody {
 
         if let Some(sz) = size {
             let wl = body.wire_len();
-            ensure!(
+            anyhow::ensure!(
                 sz == wl,
                 "Size of body does not meet expectations, got: {wl}, expected: {sz}"
             );

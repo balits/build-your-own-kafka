@@ -2,8 +2,10 @@
 
 use bytes::BufMut;
 use kafka_macros::WireLen;
+use crate::codec::{Decoder, Encoder};
+use crate::primitives::CompactArray; 
 
-use crate::codec::Encoder;
+pub type TagBuf = CompactArray<Tag>;
 
 #[derive(Debug, WireLen)]
 pub struct Tag {
@@ -15,6 +17,16 @@ impl Tag {
         Self { inner: b }
     }
 }
+impl Decoder for Tag {
+    fn decode(
+            _: &mut bytes::BytesMut,
+            _: Option<usize>,
+        ) -> anyhow::Result<Option<Self>>
+        where
+            Self: Sized + crate::WireLen {
+        unreachable!()
+    }
+}
 
 impl Encoder for Tag {
     fn encode(&self, dest: &mut bytes::BytesMut) -> anyhow::Result<()> {
@@ -22,3 +34,4 @@ impl Encoder for Tag {
         Ok(())
     }
 }
+

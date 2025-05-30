@@ -1,6 +1,7 @@
 use crate::{
     codec::Decoder,
-    primitives::{ApiKeys, CompactArray, NullableString, Tag},
+    primitives::{CompactArray, NullableString},
+    types::{ApiKeys, Tag},
     unwrap_decode,
 };
 use bytes::Buf;
@@ -39,9 +40,7 @@ impl RequestHeaderV2 {
 }
 
 impl Decoder for RequestHeaderV2 {
-    type Error = anyhow::Error;
-
-    fn decode(src: &mut bytes::BytesMut, _: Option<usize>) -> Result<Option<Self>, Self::Error>
+    fn decode(src: &mut bytes::BytesMut, _: Option<usize>) -> anyhow::Result<Option<Self>>
     where
         Self: Sized + crate::WireLen,
     {

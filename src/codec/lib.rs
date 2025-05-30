@@ -3,9 +3,6 @@ use bytes::BytesMut;
 pub const MAX_MESSAGE_SIZE: usize = 128;
 
 pub trait Decoder {
-    /// Error to be propagated to `tokio_util::codec::Decoder`
-    type Error;
-
     /// Decodes bytes read from `src` as a new instance of Self.
     /// Inside of `tokio_utils::codec::Decoder` the buffer `src`
     /// is kept between each read. If `src` doesnt have enough
@@ -16,15 +13,15 @@ pub trait Decoder {
     fn decode(
         src: &mut bytes::BytesMut,
         size_hint: Option<usize>,
-    ) -> Result<Option<Self>, Self::Error>
+    ) -> anyhow::Result<Option<Self>>
     where
-        Self: Sized + WireLen;
+        Self: WireLen;
 }
 
 /// Returns the number of bytes
 /// self takes up during encoding and decoding
 /// with traits in `tokio_util::codec`
-pub trait WireLen {
+pub trait WireLen: Sized {
     fn wire_len(&self) -> usize;
 }
 

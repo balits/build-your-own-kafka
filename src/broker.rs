@@ -3,16 +3,14 @@ use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use anyhow::Context;
 use bytes::BytesMut;
 use tokio::{
-    io::{AsyncReadExt, AsyncWriteExt},
+    io::AsyncReadExt,
     net::{TcpListener, TcpStream},
 };
-use tracing::{error, info, warn};
+use tracing::{debug, error, info, warn};
 
 use crate::{
-    codec::{Decoder, Encoder},
-    handlers::handle_request,
+    codec::Decoder,
     request::KafkaRequest,
-    WireLen,
 };
 
 pub struct Broker {
@@ -31,7 +29,7 @@ impl Broker {
 
     async fn handle_socket(stream: TcpStream, addr: SocketAddr) -> anyhow::Result<()> {
         info!("{addr} connected");
-        let (mut r, mut w) = tokio::io::split(stream);
+        let (mut r, mut _w) = tokio::io::split(stream);
         loop {
             let mut buf = BytesMut::with_capacity(Self::READ_SIZE); // <- TODO: handle bigger input sized or frames/dynamic reading
             let n = match r.read_buf(&mut buf).await {
@@ -57,14 +55,14 @@ impl Broker {
                 continue;
             }
             let req = req.unwrap();
-
-            let res = handle_request(&req).context("Handling request")?;
-            let mut buf = BytesMut::with_capacity(res.wire_len());
-            res.encode(&mut buf)
-                .context("Encoding response to buffer")?;
-            w.write_all_buf(&mut buf)
-                .await
-                .context("Sending response buffer")?;
+            debug!(request = ?req);
+            // let res = handle_request(&req).context("Handling request")?;
+            // let mut buf = BytesMut::with_capacity(res.wire_len());
+            // res.encode(&mut buf)
+            //     .context("Encoding response to buffer")?;
+            // w.write_all_buf(&mut buf)
+            //     .await
+            //     .context("Sending response buffer")?;
         }
         Ok(())
     }
