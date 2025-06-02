@@ -1,6 +1,9 @@
 use bytes::BufMut;
 
-use crate::{codec::{Decoder, Encoder, WireLen}, unwrap_decode};
+use crate::{
+    codec::{Decoder, Encoder, WireLen},
+    unwrap_decode,
+};
 use std::fmt::Debug;
 
 use super::UVarint;
@@ -28,7 +31,7 @@ impl<T: WireLen> Default for CompactArray<T> {
 }
 
 impl<T: WireLen> CompactArray<T> {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             // No allloc
             inner: Vec::new(),
@@ -96,7 +99,7 @@ impl<T: WireLen + Decoder> Decoder for CompactArray<T> {
 impl<T: WireLen + Encoder> Encoder for CompactArray<T> {
     fn encode(&self, dest: &mut bytes::BytesMut) -> anyhow::Result<()> {
         if self.inner.is_empty() {
-            dest.put_u8(0);
+            dest.put_u8(1); // watch out for this one, since N-1 = 0 empty
             return Ok(());
         }
 
@@ -111,10 +114,10 @@ impl<T: WireLen + Encoder> Encoder for CompactArray<T> {
 
 #[cfg(test)]
 mod tests {
-    use bytes::BytesMut;
     use bytes::Buf;
+    use bytes::BytesMut;
 
-    use super::super::super::response::ApiVersion;
+    use super::super::super::types::ApiVersion;
     use super::*;
 
     #[test]

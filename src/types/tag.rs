@@ -1,11 +1,14 @@
 #![allow(dead_code)]
 
+use crate::codec::{Decoder, Encoder};
+use crate::primitives::CompactArray;
 use bytes::BufMut;
 use kafka_macros::WireLen;
-use crate::codec::{Decoder, Encoder};
-use crate::primitives::CompactArray; 
 
 pub type TagBuf = CompactArray<Tag>;
+pub const fn empty_tagbuf() -> TagBuf {
+    TagBuf::new()
+}
 
 #[derive(Debug, WireLen)]
 pub struct Tag {
@@ -18,12 +21,10 @@ impl Tag {
     }
 }
 impl Decoder for Tag {
-    fn decode(
-            _: &mut bytes::BytesMut,
-            _: Option<usize>,
-        ) -> anyhow::Result<Option<Self>>
-        where
-            Self: Sized + crate::WireLen {
+    fn decode(_: &mut bytes::BytesMut, _: Option<usize>) -> anyhow::Result<Option<Self>>
+    where
+        Self: Sized + crate::WireLen,
+    {
         unreachable!()
     }
 }
@@ -34,4 +35,3 @@ impl Encoder for Tag {
         Ok(())
     }
 }
-

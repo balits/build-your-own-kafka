@@ -1,40 +1,21 @@
-use super::api_version::ApiVersion;
-use crate::codec::{Encoder, WireLen};
-use crate::primitives::{CompactArray};
-use crate::types::Tag;
+use crate::{
+    codec::Encoder,
+    primitives::CompactArray,
+    types::{ApiVersion, Tag},
+};
 use bytes::{BufMut, BytesMut};
 use kafka_macros::WireLen;
-
-#[derive(Debug)]
-pub enum ResponseBody {
-    ApiVersion(ApiVersionResponseBody),
-}
-
-impl WireLen for ResponseBody {
-    fn wire_len(&self) -> usize {
-        match self {
-            ResponseBody::ApiVersion(body) => body.wire_len(),
-        }
-    }
-}
-
-impl Encoder for ResponseBody {
-    fn encode(&self, dest: &mut BytesMut) -> anyhow::Result<()> {
-        match self {
-            ResponseBody::ApiVersion(body) => body.encode(dest),
-        }
-    }
-}
+use std::fmt::Debug;
 
 #[derive(Debug, WireLen)]
-pub struct ApiVersionResponseBody {
+pub struct ApiVersionsResponseBody {
     pub(crate) error_code: u16,
     pub(crate) api_versions: CompactArray<ApiVersion>,
     pub(crate) throttle_time: u32,
     pub(crate) tag_buffer: CompactArray<Tag>,
 }
 
-impl ApiVersionResponseBody {
+impl ApiVersionsResponseBody {
     pub fn new(
         error_code: u16,
         api_versions: CompactArray<ApiVersion>,
@@ -49,7 +30,7 @@ impl ApiVersionResponseBody {
     }
 }
 
-impl Encoder for ApiVersionResponseBody {
+impl Encoder for ApiVersionsResponseBody {
     fn encode(&self, dest: &mut BytesMut) -> anyhow::Result<()> {
         dest.put_u16(self.error_code);
         self.api_versions.encode(dest)?;

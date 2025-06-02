@@ -8,12 +8,12 @@ use crate::{
 };
 
 use super::api_versions_body::ApiVersionsRequestBody;
-use super::describe_topic_partitions_body::DescribeTopicPartitionsBody;
+use super::describe_topic_partitions_body::DescribeTopicPartitionsRequestBody;
 
 #[derive(Debug)]
 pub enum RequestBody {
     ApiVersions(ApiVersionsRequestBody),
-    DescribeTopicPartitions(DescribeTopicPartitionsBody),
+    DescribeTopicPartitions(DescribeTopicPartitionsRequestBody),
 }
 
 impl RequestBody {
@@ -28,7 +28,7 @@ impl RequestBody {
                 Ok(Some(RequestBody::ApiVersions(inner)))
             }
             ApiKeys::DescribeTopicPartitions => {
-                let inner = unwrap_decode!(DescribeTopicPartitionsBody::decode(src, size));
+                let inner = unwrap_decode!(DescribeTopicPartitionsRequestBody::decode(src, size));
                 Ok(Some(RequestBody::DescribeTopicPartitions(inner)))
             }
             k => {
@@ -46,4 +46,3 @@ impl WireLen for RequestBody {
         }
     }
 }
-

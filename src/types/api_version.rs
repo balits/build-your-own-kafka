@@ -1,11 +1,7 @@
 use bytes::{BufMut, BytesMut};
 use kafka_macros::WireLen;
 
-use crate::{
-    codec::Encoder,
-    primitives::{CompactArray},
-    types::Tag,
-};
+use crate::{codec::Encoder, primitives::CompactArray, types::Tag};
 
 #[derive(Debug, WireLen)]
 pub struct ApiVersion {

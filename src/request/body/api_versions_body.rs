@@ -1,12 +1,11 @@
-use kafka_macros::WireLen;
+use crate::codec::{Decoder, WireLen};
+use crate::primitives::*;
 use crate::types::Tag;
 use crate::unwrap_decode;
-use crate::primitives::*;
-use crate::codec::{Decoder, WireLen};
 use anyhow;
 use bytes::Buf;
+use kafka_macros::WireLen;
 use tracing::trace;
-
 
 #[derive(Debug, WireLen)]
 pub struct ApiVersionsRequestBody {

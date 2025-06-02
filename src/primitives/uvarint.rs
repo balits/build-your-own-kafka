@@ -1,7 +1,7 @@
 use crate::codec::{Decoder, Encoder, WireLen};
+use anyhow::bail;
 use bytes::{Buf, BufMut};
 use thiserror::Error;
-use anyhow::bail;
 use tracing::trace;
 
 pub struct UVarint(pub(crate) u32);
@@ -127,7 +127,7 @@ mod tests {
             Err(e) => match e.downcast_ref::<UVarintDecodeError>() {
                 Some(UVarintDecodeError::UnexpectedEndOfInput) => {}
                 _ => panic!("Expected UnexpectedEndOfInput"),
-            }
+            },
             _ => panic!("Expected UnexpectedEndOfInput"),
         }
     }

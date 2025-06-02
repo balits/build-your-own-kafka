@@ -1,13 +1,15 @@
 use anyhow::Context;
+use bytes::BufMut;
 
 use crate::{
-    codec::{Decoder, WireLen},
-    primitives::MAX_STRING_SIZE, unwrap_decode,
+    codec::{Decoder, Encoder, WireLen},
+    primitives::MAX_STRING_SIZE,
+    unwrap_decode,
 };
 
 use super::UVarint;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CompactString(pub String);
 
 impl Default for CompactString {
@@ -17,14 +19,14 @@ impl Default for CompactString {
 }
 
 impl CompactString {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self(String::new())
     }
 }
 
-impl<S> From<S> for CompactString 
-where 
-    S: Into<String>
+impl<S> From<S> for CompactString
+where
+    S: Into<String>,
 {
     fn from(value: S) -> Self {
         Self(value.into())
@@ -35,6 +37,18 @@ impl WireLen for CompactString {
     fn wire_len(&self) -> usize {
         let uv = UVarint(self.0.len() as u32 + 1);
         uv.wire_len() + self.0.len()
+    }
+}
+
+impl Encoder for CompactString {
+    fn encode(&self, dest: &mut bytes::BytesMut) -> anyhow::Result<()> {
+        let u = UVarint((self.0.len() + 1) as u32);
+        UVarint::encode(&u, dest)?;
+        for b in self.0.as_bytes() {
+            dest.put_u8(*b);
+        }
+
+        Ok(())
     }
 }
 
@@ -64,8 +78,7 @@ impl Decoder for CompactString {
 
         let data = src.split_to(len).to_vec();
 
-        let raw =
-            String::from_utf8(data).context("Parsing compact string")?;
+        let raw = String::from_utf8(data).context("Parsing compact string")?;
 
         Ok(Some(raw.into()))
     }
